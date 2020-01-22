@@ -76,5 +76,5 @@ RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_Rnor60_19.vcf.gz.tbi
 
 CMD "/launch.sh"
 
-
+# wait and add organisms after launch if not already there, or do it in the launch script
 
