@@ -52,26 +52,14 @@ ADD docker-files/createenv.sh /createenv.sh
 ADD docker-files/launch.sh /launch.sh
 
 
-RUN git clone --single-branch --branch stage https://github.com/alliance-genome/agr_jbrowse_config.git
+RUN git clone --single-branch --branch 3.0 https://github.com/alliance-genome/agr_jbrowse_config.git
 RUN mkdir /jbrowse
-RUN cp -r /agr_jbrowse_config/jbrowse/data /jbrowse
+RUN /agr_jbrowse_config/jbrowse/scripts/fetch_vcf.sh
+RUN cp -r /agr_jbrowse_config/jbrowse /jbrowse
 
-WORKDIR /jbrowse
+WORKDIR /jbrowse/scripts
 
-RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_WBcel235_20.vcf.gz
-RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_GRCz11_22.vcf.gz
-RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_R6_20.vcf.gz
-RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_GRCm38_21.vcf.gz
-RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_Rnor60_19.vcf.gz
-
-RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_WBcel235_20.vcf.gz.tbi
-RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_GRCz11_22.vcf.gz.tbi
-RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_R6_20.vcf.gz.tbi
-RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_GRCm38_21.vcf.gz.tbi
-RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_Rnor60_19.vcf.gz.tbi
-
-
-
+RUN ./fetch_vcf.sh
 
 
 CMD "/launch.sh"
