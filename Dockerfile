@@ -50,4 +50,31 @@ RUN rm -rf ${CATALINA_HOME}/webapps/* && \
 
 ADD docker-files/createenv.sh /createenv.sh
 ADD docker-files/launch.sh /launch.sh
+
+
+RUN git clone --single-branch --branch stage https://github.com/alliance-genome/agr_jbrowse_config.git
+RUN mkdir /jbrowse
+RUN cp -r /agr_jbrowse_config/jbrowse/data /jbrowse
+
+WORKDIR /jbrowse
+
+RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_WBcel235_20.vcf.gz
+RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_GRCz11_22.vcf.gz
+RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_R6_20.vcf.gz
+RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_GRCm38_21.vcf.gz
+RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_Rnor60_19.vcf.gz
+
+RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_WBcel235_20.vcf.gz.tbi
+RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_GRCz11_22.vcf.gz.tbi
+RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_R6_20.vcf.gz.tbi
+RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_GRCm38_21.vcf.gz.tbi
+RUN wget https://s3.amazonaws.com/agrjbrowse/VCF/VCF_Rnor60_19.vcf.gz.tbi
+
+
+
+
+
 CMD "/launch.sh"
+
+
+
