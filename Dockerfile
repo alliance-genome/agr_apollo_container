@@ -61,9 +61,8 @@ ADD docker-files/launch.sh /launch.sh
 RUN pwd
 WORKDIR /
 RUN pwd
-RUN git clone --single-branch --branch 3.0 https://github.com/alliance-genome/agr_jbrowse_config.git agr_jbrowse_config
-WORKDIR /jbrowse/scripts
-RUN cp -r /agr_jbrowse_config/jbrowse /jbrowse
+RUN git clone --single-branch --branch 3.0 https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
+RUN chown -R apollo:apollo /jbrowse
 WORKDIR /jbrowse/scripts
 RUN pwd
 RUN ./fetch_vcf.sh
