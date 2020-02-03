@@ -37,9 +37,7 @@ COPY docker-files/build.sh /bin/build.sh
 ADD docker-files/docker-apollo-config.groovy /apollo/apollo-config.groovy
 
 COPY docker-files/agr-apollo-jan-31-2020.sql.tgz /agr-apollo-jan-31-2020.sql.tgz
-RUN mv /agr-apollo-jan-31-2020.sql.tgz /apollo-db.sql.tgz
-RUN tar xfz /apollo-db.sql.tgz
-
+RUN tar xfz /agr-apollo-jan-31-2020.sql.tgz
 
 RUN chown -R apollo:apollo /apollo
 
