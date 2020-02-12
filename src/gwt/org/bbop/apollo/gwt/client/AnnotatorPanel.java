@@ -130,6 +130,8 @@ public class AnnotatorPanel extends Composite {
     @UiField
     GoPanel goPanel;
     @UiField
+    GeneProductPanel geneProductPanel;
+    @UiField
     CheckBox goOnlyCheckBox;
     @UiField
     static DbXrefPanel dbXrefPanel;
@@ -164,9 +166,10 @@ public class AnnotatorPanel extends Composite {
         VARIANT_INFO(3),
         ALLELE_INFO(4),
         GO(5),
-        DB_XREF(6),
-        COMMENT(7),
-        ATTRIBUTES(8),
+        GENE_PRODUCT(6),
+        DB_XREF(7),
+        COMMENT(8),
+        ATTRIBUTES(9),
         ;
 
         public int index;
@@ -300,7 +303,7 @@ public class AnnotatorPanel extends Composite {
                             dataGrid.setRowData(start, annotationInfoList);
                             if (annotationInfoList.size() == 1) {
                                 String type = annotationInfoList.get(0).getType();
-                                if (!type.equals("gene") && !type.equals("pseudogene")) {
+                                if ( (!type.equals("gene") && !type.equals("pseudogene")) || uniqueNameCheckBox.getValue()) {
                                     selectedAnnotationInfo = annotationInfoList.get(0);
                                     updateAnnotationInfo(selectedAnnotationInfo);
                                 }
@@ -413,6 +416,8 @@ public class AnnotatorPanel extends Composite {
                         alleleInfoPanel.redrawTable();
                     case GO:
                         goPanel.redraw();
+                    case GENE_PRODUCT:
+                        geneProductPanel.redraw();
                     case DB_XREF:
                         dbXrefPanel.updateData(selectedAnnotationInfo);
                         break;
@@ -479,6 +484,11 @@ public class AnnotatorPanel extends Composite {
         });
 
 
+    }
+    void selectTranscriptPanel() {
+        AnnotationInfo selectedObject = singleSelectionModel.getSelectedObject();
+        updateAnnotationInfo(selectedObject);
+        tabPanel.selectTab(0);
     }
 
     void selectGoPanel() {
@@ -596,6 +606,7 @@ public class AnnotatorPanel extends Composite {
                 tabPanel.getTabWidget(TAB_INDEX.VARIANT_INFO.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.ALLELE_INFO.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.GO.index).getParent().setVisible(true);
+                tabPanel.getTabWidget(TAB_INDEX.GENE_PRODUCT.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.DB_XREF.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.COMMENT.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.ATTRIBUTES.index).getParent().setVisible(true);
@@ -613,6 +624,7 @@ public class AnnotatorPanel extends Composite {
                 tabPanel.getTabWidget(TAB_INDEX.VARIANT_INFO.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.ALLELE_INFO.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.GO.index).getParent().setVisible(false);
+                tabPanel.getTabWidget(TAB_INDEX.GENE_PRODUCT.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.DB_XREF.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.COMMENT.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.ATTRIBUTES.index).getParent().setVisible(true);
@@ -635,6 +647,7 @@ public class AnnotatorPanel extends Composite {
                 tabPanel.getTabWidget(TAB_INDEX.VARIANT_INFO.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.ALLELE_INFO.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.GO.index).getParent().setVisible(false);
+                tabPanel.getTabWidget(TAB_INDEX.GENE_PRODUCT.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.DB_XREF.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.COMMENT.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.ATTRIBUTES.index).getParent().setVisible(true);
@@ -652,6 +665,7 @@ public class AnnotatorPanel extends Composite {
                 tabPanel.getTabWidget(TAB_INDEX.VARIANT_INFO.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.ALLELE_INFO.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.GO.index).getParent().setVisible(false);
+                tabPanel.getTabWidget(TAB_INDEX.GENE_PRODUCT.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.DB_XREF.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.COMMENT.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.ATTRIBUTES.index).getParent().setVisible(true);
@@ -676,6 +690,7 @@ public class AnnotatorPanel extends Composite {
                 tabPanel.getTabWidget(TAB_INDEX.VARIANT_INFO.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.ALLELE_INFO.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.GO.index).getParent().setVisible(false);
+                tabPanel.getTabWidget(TAB_INDEX.GENE_PRODUCT.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.DB_XREF.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.COMMENT.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.ATTRIBUTES.index).getParent().setVisible(true);
@@ -841,12 +856,14 @@ public class AnnotatorPanel extends Composite {
                 if (selectedAnnotationInfo != null) {
                     exonDetailPanel.updateData(selectedAnnotationInfo);
                     goPanel.updateData(selectedAnnotationInfo);
+                    geneProductPanel.updateData(selectedAnnotationInfo);
                     dbXrefPanel.updateData(selectedAnnotationInfo);
                     commentPanel.updateData(selectedAnnotationInfo);
                     attributePanel.updateData(selectedAnnotationInfo);
                 } else {
                     exonDetailPanel.updateData();
                     goPanel.updateData();
+                    geneProductPanel.updateData();
                     dbXrefPanel.updateData();
                     commentPanel.updateData();
                     attributePanel.updateData();
