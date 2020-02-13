@@ -35,8 +35,7 @@ ADD . /apollo
 COPY docker-files/build.sh /bin/build.sh
 ADD docker-files/docker-apollo-config.groovy /apollo/apollo-config.groovy
 
-COPY docker-files/agr-apollo-jan-31-2020.sql.tgz /agr-apollo-jan-31-2020.sql.tgz
-RUN tar xfz /agr-apollo-jan-31-2020.sql.tgz -C /
+COPY docker-files/agr-apollo-jan-31-2020.sql /agr-apollo-jan-31-2020.sql
 
 RUN chown -R apollo:apollo /apollo
 
@@ -58,11 +57,11 @@ ADD docker-files/launch.sh /launch.sh
 RUN pwd
 WORKDIR /
 RUN pwd
-RUN git clone --single-branch --branch 3.0 https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
+RUN git clone --single-branch --branch jbrowse-3.0 https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
 RUN chown -R apollo:apollo /jbrowse
 WORKDIR /jbrowse/scripts
 RUN pwd
-RUN ./fetch_vcf.sh
+RUN ./fetch_vcf.sh apollo
 
 
 CMD "/launch.sh"
