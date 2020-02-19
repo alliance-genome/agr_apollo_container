@@ -35,6 +35,8 @@ ADD . /apollo
 COPY docker-files/build.sh /bin/build.sh
 ADD docker-files/docker-apollo-config.groovy /apollo/apollo-config.groovy
 
+COPY docker-files/agr-apollo-jan-31-2020.sql /agr-apollo-jan-31-2020.sql
+
 RUN chown -R apollo:apollo /apollo
 
 USER apollo
@@ -43,10 +45,23 @@ RUN curl -s get.sdkman.io | bash && \
  		/bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && yes | sdk install gradle 3.2.1" && \
  		/bin/bash -c "source $HOME/.profile && source $HOME/.sdkman/bin/sdkman-init.sh && /bin/bash /bin/build.sh"
 
+
 USER root
 RUN rm -rf ${CATALINA_HOME}/webapps/* && \
 	cp /apollo/apollo*.war ${CATALINA_HOME}/apollo.war
 
 ADD docker-files/createenv.sh /createenv.sh
 ADD docker-files/launch.sh /launch.sh
+
+
+RUN pwd
+WORKDIR /
+RUN pwd
+RUN git clone --single-branch --branch 3.0 https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
+RUN chown -R apollo:apollo /jbrowse
+WORKDIR /jbrowse/scripts
+RUN pwd
+RUN ./fetch_vcf.sh apollo
+
+
 CMD "/launch.sh"
