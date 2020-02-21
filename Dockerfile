@@ -45,8 +45,7 @@ ADD . /apollo
 # install grails
 COPY docker-files/build.sh /bin/build.sh
 ADD docker-files/docker-apollo-config.groovy /apollo/apollo-config.groovy
-
-COPY docker-files/agr-apollo-jan-31-2020.sql /agr-apollo-jan-31-2020.sql
+ADD docker-files/agr-apollo-jan-31-2020.sql /agr-apollo-jan-31-2020.sql
 
 RUN chown -R apollo:apollo /apollo
 
