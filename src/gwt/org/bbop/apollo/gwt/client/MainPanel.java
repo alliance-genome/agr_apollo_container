@@ -7,7 +7,6 @@ import com.google.gwt.dom.client.Element;
 import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.logical.shared.SelectionEvent;
-import com.google.gwt.event.logical.shared.SelectionHandler;
 import com.google.gwt.http.client.*;
 import com.google.gwt.json.client.*;
 import com.google.gwt.uibinder.client.UiBinder;
@@ -22,7 +21,6 @@ import org.bbop.apollo.gwt.client.event.AnnotationInfoChangeEvent;
 import org.bbop.apollo.gwt.client.event.AnnotationInfoChangeEventHandler;
 import org.bbop.apollo.gwt.client.event.OrganismChangeEvent;
 import org.bbop.apollo.gwt.client.event.UserChangeEvent;
-import org.bbop.apollo.gwt.client.oracles.ReferenceSequenceOracle;
 import org.bbop.apollo.gwt.client.rest.*;
 import org.bbop.apollo.gwt.shared.FeatureStringEnum;
 import org.bbop.apollo.gwt.shared.GlobalPermissionEnum;
@@ -30,7 +28,6 @@ import org.bbop.apollo.gwt.shared.PermissionEnum;
 import org.gwtbootstrap3.client.ui.*;
 import org.gwtbootstrap3.client.ui.Anchor;
 import org.gwtbootstrap3.client.ui.Button;
-import org.gwtbootstrap3.client.ui.SuggestBox;
 import org.gwtbootstrap3.client.ui.TextBox;
 import org.gwtbootstrap3.client.ui.constants.AlertType;
 import org.gwtbootstrap3.client.ui.constants.IconType;
@@ -73,7 +70,7 @@ public class MainPanel extends Composite {
 
 
     private static MainPanel instance;
-    private final int maxUsernameLength = 15;
+    private final int MAX_USERNAME_LENGTH = 15;
     private static final double UPDATE_DIFFERENCE_BUFFER = 0.3;
     private static final double GENE_VIEW_BUFFER = 0.4;
     private static List<String> reservedList = new ArrayList<>();
@@ -115,8 +112,6 @@ public class MainPanel extends Composite {
     Button generateLink;
     @UiField
     ListBox organismListBox;
-    @UiField(provided = true)
-    static SuggestBox sequenceSuggestBox;
     @UiField
     Modal notificationModal;
     @UiField
@@ -166,7 +161,6 @@ public class MainPanel extends Composite {
 
     MainPanel() {
         instance = this;
-        sequenceSuggestBox = new SuggestBox(new ReferenceSequenceOracle());
 
         exportStaticMethod();
 
@@ -191,13 +185,6 @@ public class MainPanel extends Composite {
                         updateGenomicViewerForLocation(annotationInfo.getSequence(), start, end);
                         break;
                 }
-            }
-        });
-
-        sequenceSuggestBox.addSelectionHandler(new SelectionHandler<SuggestOracle.Suggestion>() {
-            @Override
-            public void onSelection(SelectionEvent<SuggestOracle.Suggestion> event) {
-                setCurrentSequence(sequenceSuggestBox.getText().trim(), null, null, true, false);
             }
         });
 
@@ -359,7 +346,6 @@ public class MainPanel extends Composite {
                 } else {
                     currentEndBp = end;
                 }
-                sequenceSuggestBox.setText(currentSequence.getName());
 
                 Annotator.eventBus.fireEvent(new OrganismChangeEvent(OrganismChangeEvent.Action.LOADED_ORGANISMS, currentSequence.getName(), currentOrganism.getName()));
 
@@ -519,8 +505,8 @@ public class MainPanel extends Composite {
     private void setUserNameForCurrentUser() {
         if (currentUser == null) return;
         String displayName = currentUser.getEmail();
-        userName.setText(displayName.length() > maxUsernameLength ?
-                displayName.substring(0, maxUsernameLength - 1) + "..." : displayName);
+        userName.setText(displayName.length() > MAX_USERNAME_LENGTH ?
+                displayName.substring(0, MAX_USERNAME_LENGTH - 1) + "..." : displayName);
     }
 
     public static void updateGenomicViewerForLocation(String selectedSequence, Integer minRegion, Integer maxRegion) {
@@ -689,11 +675,6 @@ public class MainPanel extends Composite {
         currentStartBp = appStateInfo.getCurrentStartBp();
         currentEndBp = appStateInfo.getCurrentEndBp();
 
-        if (currentSequence != null) {
-            sequenceSuggestBox.setText(currentSequence.getName());
-        }
-
-
         organismListBox.clear();
         for (OrganismInfo organismInfo : organismInfoList) {
             organismListBox.addItem(organismInfo.getName(), organismInfo.getId());
@@ -733,7 +714,6 @@ public class MainPanel extends Composite {
                 JSONValue j = JSONParser.parseStrict(response.getText());
                 JSONObject obj = j.isObject();
                 if (obj != null && obj.containsKey("error")) {
-//                    Bootbox.alert(obj.get("error").isString().stringValue());
                     loadingDialog.hide();
                 } else {
                     loadingDialog.hide();
@@ -1108,7 +1088,7 @@ public class MainPanel extends Composite {
 
     /**
      */
-    public static Boolean viewInAnnotationPanel(String parentName) {
+    public static Boolean viewInAnnotationPanel(String parentName,String childName) {
         try {
             // ids are registered with clone for some reason in JSONUtils.js for RR and TE . . not sure if it will break other things, so correcting here
             if(parentName.endsWith("-clone")){
@@ -1117,11 +1097,12 @@ public class MainPanel extends Composite {
             annotatorPanel.sequenceList.setText("");
             annotatorPanel.nameSearchBox.setText(parentName);
             annotatorPanel.uniqueNameCheckBox.setValue(true);
+            annotatorPanel.selectedChildUniqueName = childName;
             annotatorPanel.reload();
             detailTabs.selectTab(TabPanelIndex.ANNOTATIONS.getIndex());
             MainPanel.getInstance().openPanel();
             MainPanel.getInstance().addOpenTranscript(parentName);
-            MainPanel.getInstance().selectOpenTranscript(parentName);
+            MainPanel.getInstance().selectOpenTranscript(childName);
             return true ;
         } catch (Exception e) {
             Bootbox.alert("Problem viewing annotation");
@@ -1130,7 +1111,7 @@ public class MainPanel extends Composite {
         }
     }
 
-    private void selectOpenTranscript(String parentName) {
+    private void selectOpenTranscript(String childName) {
         annotatorPanel.selectTranscriptPanel();
         detailTabs.selectTab(TabPanelIndex.ANNOTATIONS.getIndex());
     }
@@ -1211,7 +1192,7 @@ public class MainPanel extends Composite {
         $wnd.getCurrentOrganism = $entry(@org.bbop.apollo.gwt.client.MainPanel::getCurrentOrganismAsJson());
         $wnd.getCurrentUser = $entry(@org.bbop.apollo.gwt.client.MainPanel::getCurrentUserAsJson());
         $wnd.getCurrentSequence = $entry(@org.bbop.apollo.gwt.client.MainPanel::getCurrentSequenceAsJson());
-        $wnd.viewInAnnotationPanel = $entry(@org.bbop.apollo.gwt.client.MainPanel::viewInAnnotationPanel(Ljava/lang/String;));
+        $wnd.viewInAnnotationPanel = $entry(@org.bbop.apollo.gwt.client.MainPanel::viewInAnnotationPanel(Ljava/lang/String;Ljava/lang/String;));
         $wnd.isOfficialTrack = $entry(@org.bbop.apollo.gwt.client.MainPanel::isOfficialTrack(Ljava/lang/String;));
         $wnd.closeAnnotatorPanel = $entry(@org.bbop.apollo.gwt.client.MainPanel::closePanel());
         $wnd.viewGoPanel = $entry(@org.bbop.apollo.gwt.client.MainPanel::viewGoPanel(Ljava/lang/String;));
