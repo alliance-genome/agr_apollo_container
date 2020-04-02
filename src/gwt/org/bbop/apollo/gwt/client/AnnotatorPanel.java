@@ -64,8 +64,6 @@ import java.util.Set;
  */
 public class AnnotatorPanel extends Composite {
 
-
-
     interface AnnotatorPanelUiBinder extends UiBinder<Widget, AnnotatorPanel> {
     }
 
@@ -78,7 +76,7 @@ public class AnnotatorPanel extends Composite {
     private Column<AnnotationInfo, String> dateColumn;
     private Column<AnnotationInfo, String> showHideColumn;
     private long requestIndex = 0;
-    String selectedChildUniqueName = null;
+    String selectedChildUniqueName ;
 
     private static int selectedSubTabIndex = 0;
     private static int pageSize = 25;
@@ -125,12 +123,10 @@ public class AnnotatorPanel extends Composite {
     DockLayoutPanel splitPanel;
     @UiField
     Container northPanelContainer;
-    //    @UiField
-//    Button toggleAnnotation;
     @UiField
     com.google.gwt.user.client.ui.ListBox pageSizeSelector;
     @UiField
-    GoPanel goPanel;
+    static GoPanel goPanel;
     @UiField
     static GeneProductPanel geneProductPanel;
     @UiField
@@ -157,9 +153,8 @@ public class AnnotatorPanel extends Composite {
     private Boolean showDetails = true;
 
     static AnnotationInfo selectedAnnotationInfo;
-    private MultiWordSuggestOracle sequenceOracle = new ReferenceSequenceOracle();
 
-    private static AsyncDataProvider<AnnotationInfo> dataProvider;
+
     private SingleSelectionModel<AnnotationInfo> singleSelectionModel = new SingleSelectionModel<>();
     private final Set<String> showingTranscripts = new HashSet<String>();
 
@@ -199,7 +194,7 @@ public class AnnotatorPanel extends Composite {
 
 
     public AnnotatorPanel() {
-        sequenceList = new SuggestBox(sequenceOracle);
+        sequenceList = new SuggestBox(new ReferenceSequenceOracle());
         sequenceList.getElement().setAttribute("placeHolder", "Reference Sequence");
         dataGrid.setWidth("100%");
         dataGrid.setTableBuilder(new CustomTableBuilder());
@@ -232,7 +227,7 @@ public class AnnotatorPanel extends Composite {
 
         handleDetails();
 
-        dataProvider = new AsyncDataProvider<AnnotationInfo>() {
+        AsyncDataProvider<AnnotationInfo> dataProvider = new AsyncDataProvider<AnnotationInfo>() {
             @Override
             protected void onRangeChanged(HasData<AnnotationInfo> display) {
                 final Range range = display.getVisibleRange();
@@ -622,6 +617,7 @@ public class AnnotatorPanel extends Composite {
             case "gene":
             case "pseudogene":
                 geneDetailPanel.updateData(annotationInfo);
+                goPanel.updateData(annotationInfo);
                 dbXrefPanel.updateData(annotationInfo);
                 commentPanel.updateData(annotationInfo);
                 attributePanel.updateData(annotationInfo);
@@ -641,6 +637,7 @@ public class AnnotatorPanel extends Composite {
                 break;
             case "transcript":
                 transcriptDetailPanel.updateData(annotationInfo);
+                goPanel.updateData(annotationInfo);
                 dbXrefPanel.updateData(annotationInfo);
                 commentPanel.updateData(annotationInfo);
                 attributePanel.updateData(annotationInfo);
@@ -651,7 +648,7 @@ public class AnnotatorPanel extends Composite {
                 tabPanel.getTabWidget(TAB_INDEX.ALTERNATE_ALLELES.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.VARIANT_INFO.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.ALLELE_INFO.index).getParent().setVisible(false);
-                tabPanel.getTabWidget(TAB_INDEX.GO.index).getParent().setVisible(false);
+                tabPanel.getTabWidget(TAB_INDEX.GO.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.GENE_PRODUCT.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.PROVENANCE.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.DB_XREF.index).getParent().setVisible(true);
@@ -667,6 +664,7 @@ public class AnnotatorPanel extends Composite {
             case "ncRNA":
                 transcriptDetailPanel.updateData(annotationInfo);
                 exonDetailPanel.updateData(annotationInfo, selectedAnnotationInfo);
+                goPanel.updateData(annotationInfo);
                 dbXrefPanel.updateData(annotationInfo);
                 commentPanel.updateData(annotationInfo);
                 attributePanel.updateData(annotationInfo);
@@ -677,7 +675,7 @@ public class AnnotatorPanel extends Composite {
                 tabPanel.getTabWidget(TAB_INDEX.ALTERNATE_ALLELES.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.VARIANT_INFO.index).getParent().setVisible(false);
                 tabPanel.getTabWidget(TAB_INDEX.ALLELE_INFO.index).getParent().setVisible(false);
-                tabPanel.getTabWidget(TAB_INDEX.GO.index).getParent().setVisible(false);
+                tabPanel.getTabWidget(TAB_INDEX.GO.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.GENE_PRODUCT.index).getParent().setVisible(type.equals("mRNA"));
                 tabPanel.getTabWidget(TAB_INDEX.PROVENANCE.index).getParent().setVisible(true);
                 tabPanel.getTabWidget(TAB_INDEX.DB_XREF.index).getParent().setVisible(true);
@@ -1184,5 +1182,9 @@ public class AnnotatorPanel extends Composite {
 
             row.endTR();
         }
+    }
+
+    public void setSelectedChildUniqueName(String selectedChildUniqueName) {
+        this.selectedChildUniqueName = selectedChildUniqueName;
     }
 }
