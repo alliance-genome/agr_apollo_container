@@ -53,11 +53,12 @@ COPY apollo /apollo/apollo
 ADD build* /apollo/
 ADD settings.gradle /apollo
 ADD application.properties /apollo
-RUN ls /apollo
 
 COPY docker-files/build.sh /bin/build.sh
 ADD docker-files/docker-apollo-config.groovy /apollo/apollo-config.groovy
 ADD docker-files/agr-apollo-jan-31-2020.sql /agr-apollo-jan-31-2020.sql
+RUN chown -R apollo:apollo /apollo
+RUN ls -la /apollo
 
 # install grails and python libraries
 USER apollo
