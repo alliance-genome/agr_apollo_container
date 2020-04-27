@@ -80,7 +80,6 @@ RUN rm -rf ${CATALINA_BASE}/webapps/* && \
 ADD docker-files/createenv.sh /createenv.sh
 ADD docker-files/launch.sh /launch.sh
 
-
 RUN pwd
 WORKDIR /
 RUN pwd
