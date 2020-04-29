@@ -165,5 +165,11 @@ jbrowse {
             alwaysRecheck = "true"
             alwaysPull = "true"
         }
+        AlliancePlugin{
+            git = 'https://github.com/alliance-genome/agr_jbrowse_plugin.git'
+            branch = 'master'
+            alwaysRecheck = "true"
+            alwaysPull = "true"
+        }
     }
 }
