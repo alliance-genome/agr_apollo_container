@@ -80,10 +80,9 @@ RUN rm -rf ${CATALINA_BASE}/webapps/* && \
 ADD docker-files/createenv.sh /createenv.sh
 ADD docker-files/launch.sh /launch.sh
 
-RUN pwd
 WORKDIR /
 RUN pwd
-RUN ls
+
 RUN git clone --single-branch --branch master https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
 RUN chown -R apollo:apollo /jbrowse
 WORKDIR /jbrowse/scripts
