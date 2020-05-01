@@ -204,6 +204,7 @@ apollo {
     overlapper_class = "org.bbop.apollo.sequence.OrfOverlapper"
     track_name_comparator = "/config/track_name_comparator.js"
     use_cds_for_new_transcripts = false
+    count_annotations = true
     transcript_overlapper = "CDS"
     feature_has_dbxrefs = true
     feature_has_attributes = true
@@ -340,9 +341,9 @@ apollo {
             ['label': "Canned Comments", 'link': "/cannedComment/",'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
             , ['label': "Canned Key", 'link': "/cannedKey/",'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
             , ['label': "Canned Values", 'link': "/cannedValue/",'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
-            , ['label': "Suggested Name", 'link': "/suggestedName/",'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
-            , ['label': "Feature Types", 'link': "/featureType/",'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
             , ['label': "Statuses", 'link': "/availableStatus/",'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
+            , ['label': "Feature Types", 'link': "/featureType/",'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
+            , ['label': "Suggested Feature Names", 'link': "/suggestedName/",'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
             , ['label': "Proxies", 'link': "/proxy/",'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
             , ['label': "Report::Organisms", 'link': "/organism/report/", 'type': "report"]
             , ['label': "Report::Sequences", 'link': "/sequence/report/", 'type': "report"]
@@ -358,6 +359,8 @@ apollo {
     extraTabs = [
 //            ['title': 'extra1', 'url': 'http://localhost:8080/apollo/annotator/report/'],
 //            ['title': 'extra2', 'content': '<b>Some content</b><a href="http://google.com" target="_blank">Google</a>']
+//            ['title': 'GGA', 'url': 'https://gitter.im/galaxy-genome-annotation/Lobby/~embed']
+//            ['title': 'JBrowse', 'url': 'https://gitter.im/GMOD/jbrowse/~embed']
     ]
 
 

@@ -65,7 +65,7 @@ public class MainPanel extends Composite {
     private static List<OrganismInfo> organismInfoList = new ArrayList<>(); // list of organisms for user
     private static final String trackListViewString = "&tracklist=";
     private static final String openAnnotatorPanelString = "&openAnnotatorPanel=";
-
+    private PermissionEnum highestPermissionForUser = PermissionEnum.NONE;
     private static boolean handlingNavEvent = false;
 
 
@@ -97,7 +97,7 @@ public class MainPanel extends Composite {
     @UiField
     static DockLayoutPanel eastDockPanel;
     @UiField
-    static DockLayoutPanel mainDockPanel;
+    static SplitLayoutPanel mainDockPanel;
     @UiField
     static TabLayoutPanel detailTabs;
     @UiField
@@ -471,8 +471,7 @@ public class MainPanel extends Composite {
 
                         setUserNameForCurrentUser();
                     }
-
-
+                    annotatorPanel.initializeUsers();
                 } else {
                     boolean hasUsers = returnValue.get(FeatureStringEnum.HAS_USERS.getValue()).isBoolean().booleanValue();
                     if (hasUsers) {
@@ -544,7 +543,12 @@ public class MainPanel extends Composite {
         String trackListString = Annotator.getRootUrl();
         trackListString += Annotator.getClientToken() + "/";
         trackListString += "jbrowse/index.html?loc=";
-        trackListString += URL.encodeQueryString(selectedSequence+":") + minRegion + ".." + maxRegion;
+        if(MainPanel.currentQueryParams.containsKey("searchLocation")){
+            trackListString += MainPanel.currentQueryParams.get("searchLocation").get(0);
+        }
+        else{
+            trackListString += URL.encodeQueryString(selectedSequence+":") + minRegion + ".." + maxRegion;
+        }
 
         trackListString += getCurrentQueryParamsAsString();
 
@@ -874,7 +878,7 @@ public class MainPanel extends Composite {
             openPanel();
         }
 
-        mainDockPanel.animate(50);
+        mainDockPanel.animate(0);
 
         toggleOpen = !toggleOpen;
         Annotator.setPreference(FeatureStringEnum.DOCK_OPEN.getValue(), toggleOpen);
@@ -1102,7 +1106,9 @@ public class MainPanel extends Composite {
             detailTabs.selectTab(TabPanelIndex.ANNOTATIONS.getIndex());
             MainPanel.getInstance().openPanel();
             MainPanel.getInstance().addOpenTranscript(parentName);
-            MainPanel.getInstance().selectOpenTranscript(childName);
+            if(childName!=null){
+                MainPanel.getInstance().selectOpenTranscript(childName);
+            }
             return true ;
         } catch (Exception e) {
             Bootbox.alert("Problem viewing annotation");
@@ -1308,6 +1314,16 @@ public class MainPanel extends Composite {
         currentSequence.setStartBp(currentStartBp);
         currentSequence.setEndBp(currentEndBp);
         return currentSequence;
+    }
+
+
+    public void setHighestPermissionForUser(PermissionEnum highestPermissionForUser) {
+
+        this.highestPermissionForUser = highestPermissionForUser;
+    }
+
+    public PermissionEnum getHighestPermissionForUser() {
+        return highestPermissionForUser;
     }
 
 }
