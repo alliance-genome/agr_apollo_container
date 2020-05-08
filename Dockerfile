@@ -85,7 +85,7 @@ WORKDIR /
 RUN pwd
 RUN ls
 
-RUN git clone --single-branch --branch master https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
+RUN git clone --single-branch --branch release-3.0.1 https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
 RUN chown -R apollo:apollo /jbrowse
 WORKDIR /jbrowse/scripts
 RUN pwd
