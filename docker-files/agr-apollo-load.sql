@@ -2015,7 +2015,7 @@ COPY public.organism (id, version, abbreviation, blatdb, comment, common_name, d
 918450	6	\N	\N	\N	yeast	\N	/jbrowse/apollo/data/yeast	Saccharomyces	{"creator":"19"}	\N	t	cerevisiae	t	\N	\N	f
 918487	6	\N	\N	\N	zebrafish	\N	/jbrowse/apollo/data/zebrafish	Danio	{"creator":"19"}	\N	t	rerio	t	\N	\N	f
 1095	6	\N	\N	\N	fly	\N	/jbrowse/apollo/data/fly	Drosophila	\N	\N	t	melanogaster	t	\N	\N	f
-1097	1	\N	\N	\N	SARS-CoV-2	\N	/jbrowse/apollo/data/SARS-CoV-2	Coronovirus	\N	\N	t	SARS-CoV-2	t	\N	\N	f
+920915	2	\N	\N	\N	SARS-CoV-2	\N	/jbrowse/apollo/data/SARS-CoV-2	Coronavirus	{"creator":"920912"}	\N	f	SARS-CoV-2	t	\N	\N	f
 \.
 
 
@@ -2087,6 +2087,7 @@ COPY public.permission (id, version, organism_id, class, group_id, track_visibil
 918593	1	918592	org.bbop.apollo.UserOrganismPermission	\N	\N	["ADMINISTRATE"]	19
 918619	1	918618	org.bbop.apollo.UserOrganismPermission	\N	\N	["ADMINISTRATE"]	19
 918647	1	918646	org.bbop.apollo.UserOrganismPermission	\N	\N	["ADMINISTRATE"]	19
+920916	1	920915	org.bbop.apollo.UserOrganismPermission	\N	\N	["ADMINISTRATE"]	920912
 \.
 
 
@@ -3551,6 +3552,7 @@ COPY public.sequence (id, version, sequence_end, length, name, organism_id, seq_
 1194	0	16313	16313	MT	1173	80000	0
 1195	0	159970021	159970021	X	1173	80000	0
 1196	0	3310458	3310458	Y	1173	80000	0
+920917	0	29903	29903	NC_045512.2	920915	80000	0
 \.
 
 
