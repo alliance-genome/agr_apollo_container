@@ -2015,6 +2015,7 @@ COPY public.organism (id, version, abbreviation, blatdb, comment, common_name, d
 918450	6	\N	\N	\N	yeast	\N	/jbrowse/apollo/data/yeast	Saccharomyces	{"creator":"19"}	\N	t	cerevisiae	t	\N	\N	f
 918487	6	\N	\N	\N	zebrafish	\N	/jbrowse/apollo/data/zebrafish	Danio	{"creator":"19"}	\N	t	rerio	t	\N	\N	f
 1095	6	\N	\N	\N	fly	\N	/jbrowse/apollo/data/fly	Drosophila	\N	\N	t	melanogaster	t	\N	\N	f
+1097	1	\N	\N	\N	SARS-CoV-2	\N	/jbrowse/apollo/data/SARS-CoV-2	Coronovirus	\N	\N	t	SARS-CoV-2	t	\N	\N	f
 \.
 
 
