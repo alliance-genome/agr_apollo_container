@@ -82,10 +82,8 @@ ADD docker-files/launch.sh /launch.sh
 
 RUN pwd
 WORKDIR /
-RUN pwd
-RUN ls
 
-RUN git clone --single-branch --branch master https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
+RUN git clone --single-branch --branch release-3.1.1 https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
 RUN chown -R apollo:apollo /jbrowse
 WORKDIR /jbrowse/scripts
 RUN pwd
@@ -95,4 +93,4 @@ RUN ./fetch_vcf.sh apollo
 CMD "/launch.sh"
 
 # wait and add organisms after launch if not already there, or do it in the launch script
-
+# bumping for rebuilding docker 
