@@ -83,7 +83,7 @@ ADD docker-files/launch.sh /launch.sh
 RUN pwd
 WORKDIR /
 
-RUN git clone --single-branch --branch release-3.1.1 https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
+RUN git clone --single-branch --branch master https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
 RUN chown -R apollo:apollo /jbrowse
 WORKDIR /jbrowse/scripts
 RUN pwd
