@@ -12,6 +12,16 @@ import org.bbop.apollo.sequence.TranslationTable
 class ConfigWrapperService {
 
     def grailsApplication
+    def servletContext
+
+    String getWebRootDir(){
+        if(servletContext){
+            return servletContext.getRealPath("/")
+        }
+        else{
+            return "./"
+        }
+    }
 
     Boolean useCDS() {
         return grailsApplication.config.apollo.use_cds_for_new_transcripts
@@ -30,7 +40,7 @@ class ConfigWrapperService {
   }
 
   TranslationTable getTranslationTable() {
-        return SequenceTranslationHandler.getTranslationTableForGeneticCode(getTranslationCode())
+        return SequenceTranslationHandler.getTranslationTableForGeneticCode(getTranslationCode(),getWebRootDir())
     }
 
     String getTranslationCode(){
@@ -157,6 +167,11 @@ class ConfigWrapperService {
 
     String getGff3Source(){
       return grailsApplication.config.gff3.source
+    }
+
+
+    boolean getCalculateNonCanonicalSpliceSites(){
+       return grailsApplication.config.apollo.calculate_non_canonical_splice_sites
     }
 
 }
