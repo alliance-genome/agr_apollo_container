@@ -82,16 +82,14 @@ class VcfController {
             log.error(e.stackTrace)
         }
 
-//        String featureArrayString = featuresArray.toString()
+        // returning from the cache is more consistent.
         trackService.cacheRequest(featuresArray.toString(), organismString, trackName, sequence, fmin, fmax, type, null)
-        // this provides more consistent feedback
         String responseString = trackService.checkCache(organismString, trackName, sequence, fmin, fmax, type, null)
         if (responseString) {
             render JSON.parse(responseString) as JSON
             return
         }
-        render (new JSONObject()) as JSON
-//        render featuresArray as JSON
+        render new JSONObject() as JSON
     }
 
 }
