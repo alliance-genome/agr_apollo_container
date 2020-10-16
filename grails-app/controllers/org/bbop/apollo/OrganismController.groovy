@@ -52,6 +52,7 @@ class OrganismController {
     , @RestApiParam(name = "password", type = "password", paramType = RestApiParamType.QUERY)
     , @RestApiParam(name = "id", type = "string or number", paramType = RestApiParamType.QUERY, description = "Pass an Organism ID or commonName that corresponds to the organism to be removed")
     , @RestApiParam(name = "organism", type = "string or number", paramType = RestApiParamType.QUERY, description = "Pass an Organism ID or commonName that corresponds to the organism to be removed")
+      , @RestApiParam(name = "returnAllOrganisms", type = "boolean", paramType = RestApiParamType.QUERY, description = "(optional) Return all organisms (true / false) (default true)")
   ])
   @Transactional
   def deleteOrganism() {
@@ -101,7 +102,8 @@ class OrganismController {
         assert directoryToRemove.deleteDir()
       }
 
-      findAllOrganisms()
+      Boolean returnAllOrganisms = organismJson.returnAllOrganisms!=null ? Boolean.valueOf(organismJson.returnAllOrganisms) : true
+      render returnAllOrganisms ? findAllOrganisms() : new JSONArray()
 
     }
     catch (Exception e) {
@@ -651,15 +653,14 @@ class OrganismController {
                   TrackTypeEnum trackTypeEnum = org.bbop.apollo.gwt.shared.track.TrackTypeEnum.valueOf(trackConfigObject.apollo.type)
                   String newFileName = trackTypeEnum ? trackConfigObject.key + "." + trackTypeEnum.suffix[0] : trackFile.originalFilename
 
-
-                  if (trackFile.originalFilename.endsWith("gz")) {
+                  // if it is compressed, but not a indexed type (which should remain compressed)
+                  if (trackFile.originalFilename.endsWith("gz") && trackTypeEnum.getSuffixIndexString().length()==0) {
                     decompressFileToRawDirectory(trackFile, path, trackConfigObject, newFileName)
                   } else {
 
                     File destinationFile = fileService.storeWithNewName(trackFile, path, trackConfigObject.key, newFileName)
                     if (trackFileIndex.originalFilename) {
                       String newFileNameIndex = trackTypeEnum ? trackConfigObject.key + "." + trackTypeEnum.suffixIndex[0] : trackFileIndex.originalFilename
-//                                        fileService.store(trackFileIndex, path)
                       fileService.storeWithNewName(trackFileIndex, path, trackConfigObject.key, newFileNameIndex)
                     }
 
@@ -1163,7 +1164,7 @@ class OrganismController {
       sequenceService.loadRefSeqs(organism)
 
       preferenceService.setCurrentOrganism(permissionService.getCurrentUser(organismJson), organism, clientToken)
-      Boolean returnAllOrganisms = organismJson.returnAllOrganisms ? Boolean.valueOf(organismJson.returnAllOrganisms) : true
+      Boolean returnAllOrganisms = organismJson.returnAllOrganisms!=null ? Boolean.valueOf(organismJson.returnAllOrganisms) : true
 
       render returnAllOrganisms ? findAllOrganisms() : new JSONArray()
 
@@ -1253,7 +1254,7 @@ class OrganismController {
       }
     } else if (!refSeqFile.exists()) {
       organism.valid = false
-      throw new Exception("Reference sequence file does not exists: " + refSeqFile.absolutePath)
+      throw new Exception("Reference sequence file does not exist: " + refSeqFile.absolutePath)
     }
 
     organism.valid = true
@@ -1276,6 +1277,7 @@ class OrganismController {
     , @RestApiParam(name = "metadata", type = "string", paramType = RestApiParamType.QUERY, description = "organism metadata")
     , @RestApiParam(name = "organismData", type = "file", paramType = RestApiParamType.QUERY, description = "zip or tar.gz compressed data directory (if other options not used).  Blat data should include a .2bit suffix and be in a directory 'searchDatabaseData'")
     , @RestApiParam(name = "noReloadSequences", type = "boolean", paramType = RestApiParamType.QUERY, description = "(default false) If set to true, then sequences will not be reloaded if the organism directory changes.")
+    , @RestApiParam(name = "returnAllOrganisms", type = "boolean", paramType = RestApiParamType.QUERY, description = "(optional) Return all organisms (true / false) (default true)")
   ])
   @Transactional
   def updateOrganismInfo() {
@@ -1348,7 +1350,10 @@ class OrganismController {
       } else {
         throw new Exception('organism not found')
       }
-      findAllOrganisms()
+
+      Boolean returnAllOrganisms = organismJson.returnAllOrganisms!=null ? Boolean.valueOf(organismJson.returnAllOrganisms) : true
+      render returnAllOrganisms ? findAllOrganisms() : new JSONArray()
+
     }
     catch (e) {
       def error = [error: 'problem saving organism: ' + e]

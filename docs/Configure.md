@@ -76,6 +76,12 @@ grails {
 }
 ```
 
+### Suppress calculation of non-canonical splice sites
+
+By default we calculate non-canonical splice sites.  For some organisms this is undesirable.
+
+    apollo.calculate_non_canonical_splice_sites = false 
+
 ### Count annotations
 
 By default annotations are counted, but in some cases this can be come prohibitive for performance if a lot of annotations. 
@@ -101,7 +107,7 @@ There are two sections, ```plugins``` and ```git```, which specifies the JBrowse
 ```
  git {
         url = "https://github.com/gmod/jbrowse"
-        branch = "1.16.8-release"
+        branch = "1.16.9-release"
 ```
    
 If a git block a ```tag``` or ```branch``` can be specified.  

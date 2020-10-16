@@ -7,7 +7,7 @@ System.getenv().each {
 
 Boolean checkBooleanEnvironment(String environment,Boolean defaultValue  ){
     if(System.getenv(environment)==null || System.getenv(environment).trim().replaceAll(/"/,"").replaceAll(/'/,"").size()==0){
-        println "'${environment}' not properly specified '${System.getenv(environment)}' so returning default '${defaultValue}'."
+        println "'${environment}' not specified '${System.getenv(environment)}' so returning default '${defaultValue}'."
         return defaultValue
     }
     boolean returnValue = Boolean.valueOf(System.getenv(environment))
@@ -105,7 +105,8 @@ apollo {
     feature_has_dbxrefs = checkBooleanEnvironment("WEBAPOLLO_FEATURE_HAS_DBXREFS",true)
     feature_has_attributes = checkBooleanEnvironment("WEBAPOLLO_FEATURE_HAS_ATTRS",true)
     feature_has_pubmed_ids = checkBooleanEnvironment("WEBAPOLLO_FEATURE_HAS_PUBMED",true)
-    feature_has_go_ids = checkBooleanEnvironment("WEBAPOLLO_FEATURE_HAS_GO",true)
+    feature_has_go_ids =checkBooleanEnvironment("WEBAPOLLO_FEATURE_HAS_GO",true)
+    calculate_non_canonical_splice_sites = checkBooleanEnvironment("WEBAPOLLO_CALCULATE_NON_CANONICAL_SPLICE_SITES",true)
     feature_has_comments = checkBooleanEnvironment("WEBAPOLLO_FEATURE_HAS_COMMENTS",true)
     feature_has_status = checkBooleanEnvironment("WEBAPOLLO_FEATURE_HAS_STATUS",true)
     translation_table = "/config/translation_tables/ncbi_" + (System.getenv("WEBAPOLLO_TRANSLATION_TABLE") ?: "1") + "_translation_table.txt"
@@ -143,7 +144,7 @@ apollo {
 jbrowse {
     git {
         url = "https://github.com/GMOD/jbrowse"
-        branch = "1.16.8-release"
+        branch = "1.16.10-release"
     }
     plugins {
         ScreenShotPlugin{
