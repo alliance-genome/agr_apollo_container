@@ -1,5 +1,6 @@
 package org.bbop.apollo
 
+import com.google.gson.JsonObject
 import grails.converters.JSON
 import grails.transaction.Transactional
 import htsjdk.variant.vcf.VCFFileReader
@@ -81,9 +82,16 @@ class VcfController {
             log.error(e.stackTrace)
         }
 
-        String featureArrayString = featuresArray.toString()
-        trackService.cacheRequest(featuresArrayString, organismString, trackName, sequence, fmin, fmax, type, null)
-        render JSON.parse(featuresArrayString) as JSON
+//        String featureArrayString = featuresArray.toString()
+        trackService.cacheRequest(featuresArray.toString(), organismString, trackName, sequence, fmin, fmax, type, null)
+        // this provides more consistent feedback
+        String responseString = trackService.checkCache(organismString, trackName, sequence, fmin, fmax, type, null)
+        if (responseString) {
+            render JSON.parse(responseString) as JSON
+            return
+        }
+        render (new JSONObject()) as JSON
+//        render featuresArray as JSON
     }
 
 }
