@@ -6,12 +6,20 @@ Features
 
 - Add option to suppress calculation of non-canonical splice site [2509](https://github.com/GMOD/Apollo/issues/2509).
 - Added the ability to sync the gene and transcript name with the click of a button [2519](https://github.com/GMOD/Apollo/issues/2519).
+- Added organism and species to menus [2537](https://github.com/GMOD/Apollo/pull/2537).
+- Added UUID lookup and link [2539](https://github.com/GMOD/Apollo/pull/2539/).
+- Added status filter for recent annotations [2543](https://github.com/GMOD/Apollo/pull/2543/).
+- Add feature name `loc` to loadLink [2544](https://github.com/GMOD/Apollo/issues/2544).
+- `loc` loadLink now supports UUID and ID popup provides link [2549](https://github.com/GMOD/Apollo/issues/2549).
 
 Bug Fixes
 
 - BLAT search should send annotation creation results to the proper reference sequence [2514](https://github.com/GMOD/Apollo/issues/2514).
 - Properly handle Shine_Dalgarno sequences when added as part of gene model [2515](https://github.com/GMOD/Apollo/issues/2515).
 - Now able to resize terminators by dragging  [2521](https://github.com/GMOD/Apollo/issues/2521).
+- Added missing GO annotations [2535](https://github.com/GMOD/Apollo/pull/2535).
+- findAllOrganism webserver failed when user is not an admin and no session is present [2540](https://github.com/GMOD/Apollo/issues/2540).
+- Provide minor UI and bug fixes [2548](https://github.com/GMOD/Apollo/pull/2548).
 
 Infrastructure Changes
 
@@ -25,6 +33,7 @@ Infrastructure Changes
 - Upgrade to [JBrowse 1.16.9](https://github.com/GMOD/jbrowse/releases/tag/1.16.9) / [2489](https://github.com/GMOD/Apollo/pull/2489).  
 - Fixed Python dependency for Travis for BioPython (3.7) and upgraded to Xenial [2493](https://github.com/GMOD/Apollo/pull/2493).
 - Updated internal Docker Python script to add to use the [Apollo 4.2.3 library](https://pypi.org/project/apollo/).
+- Shows and hide annotation detail panels on demand so list is not obscured [2538](https://github.com/GMOD/Apollo/pull/2538)
 
 
 Bug Fixes

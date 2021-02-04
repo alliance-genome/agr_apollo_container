@@ -159,7 +159,7 @@ public class TranscriptDetailPanel extends Composite {
 
     @UiHandler("annotationIdButton")
     void getAnnotationInfo(ClickEvent clickEvent) {
-        Bootbox.alert(internalAnnotationInfo.getUniqueName());
+      new LinkDialog("UniqueName: "+internalAnnotationInfo.getUniqueName(),"Link to: "+MainPanel.getInstance().generateApolloLink(internalAnnotationInfo.getUniqueName()),true);
     }
 
     @UiHandler("gotoAnnotation")
@@ -329,6 +329,10 @@ public class TranscriptDetailPanel extends Composite {
 
     private void checkSyncButton(){
         AnnotationInfo geneAnnotation = MainPanel.annotatorPanel.getCurrentGene();
+        if(geneAnnotation==null){
+            GWT.log("Please select gene to synchronize name");
+            return ;
+        }
         Set<AnnotationInfo> childAnnotations = geneAnnotation.getChildAnnotations();
         if(childAnnotations.size()==1){
             syncNameButton.setEnabled(!this.internalAnnotationInfo.getName().equals(geneAnnotation.getName()));

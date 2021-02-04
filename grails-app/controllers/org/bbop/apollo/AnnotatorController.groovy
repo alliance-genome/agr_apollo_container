@@ -66,7 +66,7 @@ class AnnotatorController {
                 clientToken = ClientTokenGenerator.generateRandomString()
                 log.debug 'generating client token on the backend: ' + clientToken
             }
-            Organism organism
+            Organism organism = null
             // check organism first
             if (params.containsKey(FeatureStringEnum.ORGANISM.value)) {
                 String organismString = params[FeatureStringEnum.ORGANISM.value]
@@ -85,7 +85,14 @@ class AnnotatorController {
                 organism = featureLocation.sequence.organism
             }
 
-            if (!allowedOrganisms.contains(organism)) {
+          if (Feature.countByUniqueName(params.loc)>0) {
+            Feature feature = Feature.findByUniqueName(params.loc)
+            FeatureLocation featureLocation = feature.featureLocation
+            params.loc = featureLocation.sequence.name + ":" + featureLocation.fmin + ".." + featureLocation.fmax
+            organism = featureLocation.sequence.organism
+          }
+
+          if (!allowedOrganisms.contains(organism)) {
                 log.error("Can not load organism ${organism?.commonName} so loading ${allowedOrganisms.first().commonName} instead.")
                 params.loc = null
                 organism = allowedOrganisms.first()
@@ -94,9 +101,13 @@ class AnnotatorController {
             log.debug "loading organism: ${organism}"
             preferenceService.setCurrentOrganism(permissionService.currentUser, organism, clientToken)
             String location = params.loc
-            // assume that the lookup is a symbol lookup value and not a location
+
+          // assume that the lookup is a symbol lookup value and not a location
             if (location) {
-                if(location.contains(':') && location.contains('..')){
+                int colonIndex = location.indexOf(':')
+                int ellipseIndex = location.indexOf('..')
+
+                if(colonIndex > 0 && colonIndex < ellipseIndex){
                     String[] splitString = location.split(':')
                     log.debug "splitString : ${splitString}"
                     String sequenceString = splitString[0]
@@ -116,8 +127,17 @@ class AnnotatorController {
                     log.debug "fmin ${fmin} . . fmax ${fmax} . . ${sequence}"
                     preferenceService.setCurrentSequenceLocation(sequence.name, fmin, fmax, clientToken)
                 }
-                else{
-                    searchName = location
+                else
+                if(organism && location.trim().length()>0) {
+                  def featureLocationResult = FeatureLocation.executeQuery("select fl,s from Feature f join f.featureLocations fl join fl.sequence s join s.organism o where o = :organism and f.name = :name",[organism:organism,name:location] ).first()
+                  FeatureLocation featureLocation = featureLocationResult[0]
+                  Sequence sequence = featureLocationResult[1]
+                  int fmin = featureLocation.fmin
+                  int fmax = featureLocation.fmax
+                  preferenceService.setCurrentSequenceLocation(sequence.name, fmin, fmax, clientToken)
+                }
+              else{
+                  log.error("Failed to process load process loadLink string")
                 }
             }
         }

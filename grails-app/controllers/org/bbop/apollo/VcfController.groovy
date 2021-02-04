@@ -1,6 +1,5 @@
 package org.bbop.apollo
 
-import com.google.gson.JsonObject
 import grails.converters.JSON
 import grails.transaction.Transactional
 import htsjdk.variant.vcf.VCFFileReader
@@ -89,7 +88,6 @@ class VcfController {
             render JSON.parse(responseString) as JSON
             return
         }
-        render new JSONObject() as JSON
-    }
+        render new JSONObject() as JSON    }
 
 }

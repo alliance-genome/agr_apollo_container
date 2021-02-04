@@ -40,6 +40,7 @@ import org.bbop.apollo.gwt.client.dto.UserInfoConverter;
 import org.bbop.apollo.gwt.client.event.*;
 import org.bbop.apollo.gwt.client.oracles.ReferenceSequenceOracle;
 import org.bbop.apollo.gwt.client.resources.TableResources;
+import org.bbop.apollo.gwt.client.rest.AnnotationRestService;
 import org.bbop.apollo.gwt.client.rest.AvailableStatusRestService;
 import org.bbop.apollo.gwt.client.rest.UserRestService;
 import org.bbop.apollo.gwt.shared.FeatureStringEnum;
@@ -75,11 +76,11 @@ public class AnnotatorPanel extends Composite {
     private Column<AnnotationInfo, Number> lengthColumn;
     private Column<AnnotationInfo, String> dateColumn;
     private Column<AnnotationInfo, String> showHideColumn;
-    private long requestIndex = 0;
+    private static long requestIndex = 0;
     String selectedChildUniqueName ;
 
     private static int selectedSubTabIndex = 0;
-    private static int pageSize = 25;
+    private static int pageSize = 50;
 
     private final String COLLAPSE_ICON_UNICODE = "\u25BC";
     private final String EXPAND_ICON_UNICODE = "\u25C0";
@@ -120,7 +121,7 @@ public class AnnotatorPanel extends Composite {
     @UiField
     ListBox userField;
     @UiField
-    DockLayoutPanel splitPanel;
+    static DockLayoutPanel splitPanel;
     @UiField
     Container northPanelContainer;
     @UiField
@@ -149,14 +150,16 @@ public class AnnotatorPanel extends Composite {
     ListBox statusField;
     @UiField
     static HTML annotationDescription;
+  @UiField
+  static DockLayoutPanel annotatorDetailPanel;
+  @UiField
+  static Hyperlink closeDetailsButton;
+  @UiField
+  static Hyperlink annotationLinkButton;
 
 
-    // manage UI-state
-    private Boolean showDetails = true;
-
+  // manage UI-state
     static AnnotationInfo selectedAnnotationInfo;
-
-
     private SingleSelectionModel<AnnotationInfo> singleSelectionModel = new SingleSelectionModel<>();
     private final Set<String> showingTranscripts = new HashSet<String>();
 
@@ -520,7 +523,23 @@ public class AnnotatorPanel extends Composite {
         return geneDetailPanel.getInternalAnnotationInfo();
     }
 
-    void selectTranscriptPanel() {
+  private static void closeAnnotatorDetailsPanels() {
+    closeDetailsButton.setVisible(false);
+    annotationLinkButton.setVisible(false);
+    annotationDescription.setHTML("Select annotation to show details");
+    splitPanel.setWidgetSize(annotatorDetailPanel,20);
+    splitPanel.animate(200);
+  }
+
+  private static void openAnnotatorDetailsPanel() {
+    closeDetailsButton.setVisible(true);
+    annotationLinkButton.setVisible(true);
+    splitPanel.setWidgetSize(annotatorDetailPanel,460);
+    splitPanel.animate(200);
+  }
+
+
+  void selectTranscriptPanel() {
         AnnotationInfo selectedObject = singleSelectionModel.getSelectedObject();
         updateAnnotationInfo(selectedObject);
         tabPanel.selectTab(0);
@@ -634,7 +653,7 @@ public class AnnotatorPanel extends Composite {
         }
 
         if (annotationInfo == null) {
-            annotationDescription.setHTML("nothing selected");
+            annotationDescription.setHTML("Nothing selected");
             return;
         }
         String type = annotationInfo.getType();
@@ -783,12 +802,12 @@ public class AnnotatorPanel extends Composite {
 
     private static void setAnnotationDescription(AnnotationInfo annotationInfo) {
         if(annotationInfo!=null){
-            annotationDescription.setVisible(true);
             annotationDescription.setHTML("&nbsp;&nbsp;&nbsp;&nbsp;<b>"+annotationInfo.getType()  + "</b>:  " + annotationInfo.getName() +"");
+          openAnnotatorDetailsPanel();
         }
         else{
-            annotationDescription.setVisible(false);
-            annotationDescription.setHTML("");
+            annotationDescription.setHTML("&nbsp;&nbsp;&nbsp;&nbsp;Select annotation to show details");
+          closeAnnotatorDetailsPanels();
         }
     }
 
@@ -939,7 +958,7 @@ public class AnnotatorPanel extends Composite {
             @Override
             public void onSelectionChange(SelectionChangeEvent event) {
                 selectedAnnotationInfo = singleSelectionModel.getSelectedObject();
-                tabPanel.setVisible(showDetails && selectedAnnotationInfo != null);
+                tabPanel.setVisible(selectedAnnotationInfo != null);
                 if (selectedAnnotationInfo != null) {
                     exonDetailPanel.updateData(selectedAnnotationInfo);
                     goPanel.updateData(selectedAnnotationInfo);
@@ -1013,7 +1032,18 @@ public class AnnotatorPanel extends Composite {
         reload();
     }
 
-    @UiHandler(value = {"pageSizeSelector"})
+  @UiHandler(value = {"annotationLinkButton"})
+  public void showAnnotationLink(ClickEvent clickEvent){
+    String link =MainPanel.getInstance().generateApolloLink(selectedAnnotationInfo.getUniqueName());
+    new LinkDialog("Link to '"+selectedAnnotationInfo.getName()+"'",link,true);
+  }
+
+  @UiHandler(value = {"closeDetailsButton"})
+  public void closeDetails(ClickEvent clickEvent){
+    closeAnnotatorDetailsPanels();
+  }
+
+  @UiHandler(value = {"pageSizeSelector"})
     public void changePageSize(ChangeEvent changeEvent) {
         pageSize = Integer.parseInt(pageSizeSelector.getSelectedValue());
         dataGrid.setPageSize(pageSize);
@@ -1056,7 +1086,7 @@ public class AnnotatorPanel extends Composite {
 
 
     private void handleDetails() {
-        tabPanel.setVisible(showDetails && singleSelectionModel.getSelectedObject() != null);
+        tabPanel.setVisible(singleSelectionModel.getSelectedObject() != null);
     }
 
     private static AnnotationInfo getChildAnnotation(AnnotationInfo annotationInfo, String uniqueName) {
@@ -1241,5 +1271,43 @@ public class AnnotatorPanel extends Composite {
 
     public void setSelectedChildUniqueName(String selectedChildUniqueName) {
         this.selectedChildUniqueName = selectedChildUniqueName;
+    }
+
+    public void setSelectedGene(String parentName) {
+        List<AnnotationInfo> annotationInfoList = dataGrid.getVisibleItems();
+        // 1. let's look locally and see if its already loaded
+        for(AnnotationInfo annotationInfo : annotationInfoList){
+            if(annotationInfo.getUniqueName().equals(parentName)){
+                geneDetailPanel.updateData(annotationInfo);
+                return ;
+            }
+        }
+        // 2. not found within the default page, so we'll check the server
+        RequestCallback requestCallback = new RequestCallback() {
+            @Override
+            public void onResponseReceived(Request request, Response response) {
+                JSONObject returnValue = null;
+                try {
+                    returnValue = JSONParser.parseStrict(response.getText()).isObject();
+                    JSONArray jsonArray = returnValue.get(FeatureStringEnum.FEATURES.getValue()).isArray();
+                    if(jsonArray.size()==1){
+                        AnnotationInfo annotationInfo = AnnotationInfoConverter.convertFromJsonObject(jsonArray.get(0).isObject(),true);
+                        geneDetailPanel.updateData(annotationInfo);
+                    }
+                } catch (Exception e) {
+                    Bootbox.alert(e.getMessage());
+                }
+            }
+
+            @Override
+            public void onError(Request request, Throwable exception) {
+                Bootbox.alert(exception.getMessage());
+            }
+        };
+        AnnotationRestService.findAnnotationByUniqueName(requestCallback,parentName);
+    }
+
+    public static long getNextRequestIndex(){
+        return requestIndex++ ;
     }
 }
