@@ -1,4 +1,22 @@
 
+## 2.6.3
+
+Features
+
+- Fix empty attribute list in annotation panel [2552](https://github.com/GMOD/Apollo/issues/2552).
+- Added ability to use posts to sequence methods [2555](https://github.com/GMOD/Apollo/pull/2558).
+- Added system info web service [2557](https://github.com/GMOD/Apollo/pull/2557).
+
+Bug Fixes:
+- Bad coordinate value in genomic element details screen in annotator panel [2559](https://github.com/GMOD/Apollo/issues/2559).
+- Web services indicated user had no organism permissions when checking the login [2554](https://github.com/GMOD/Apollo/issues/2554).
+- Vcf reads as ISO-8859-1 instead of UTF-8 from reader mangling some symbols. [2498](https://github.com/GMOD/Apollo/issues/2498).
+
+Infrastructure Changes
+
+- Removed travis in favor of GitHub Actions [2546](https://github.com/GMOD/Apollo/issues/2546).
+
+
 
 ## 2.6.2
 

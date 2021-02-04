@@ -54,9 +54,13 @@ COPY apollo /apollo/apollo
 ADD build* /apollo/
 ADD settings.gradle /apollo
 ADD application.properties /apollo
+RUN ls /apollo
 
 COPY docker-files/build.sh /bin/build.sh
 ADD docker-files/docker-apollo-config.groovy /apollo/apollo-config.groovy
+
+COPY docker-files/agr-apollo-jan-31-2020.sql /agr-apollo-jan-31-2020.sql
+
 ADD docker-files/agr-apollo-load.sql /agr-apollo-load.sql
 RUN chown -R apollo:apollo /apollo
 RUN ls -la /apollo
@@ -64,7 +68,7 @@ RUN ls -la /apollo
 # install grails and python libraries
 USER apollo
 
-# fix for pip install decode error 
+# fix for pip install decode error
 # RUN locale-gen en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
@@ -73,13 +77,14 @@ ENV LANGUAGE=en_US.UTF-8
 
 RUN pip3 install setuptools
 RUN pip3 install wheel
-RUN pip3 install nose apollo==4.2.7
+RUN pip3 install nose apollo==4.2.10
 
 RUN curl -s get.sdkman.io | bash && \
      /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && yes | sdk install grails 2.5.5" && \
      /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && yes | sdk install gradle 3.2.1"
 
 RUN /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && /bin/bash /bin/build.sh"
+
 
 USER root
 # remove from webapps and copy it into a staging directory
@@ -89,10 +94,11 @@ RUN rm -rf ${CATALINA_BASE}/webapps/* && \
 ADD docker-files/createenv.sh /createenv.sh
 ADD docker-files/launch.sh /launch.sh
 
+
 RUN pwd
 WORKDIR /
-
-RUN git clone --single-branch --branch release-3.2.0 https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
+RUN pwd
+RUN git clone --single-branch --branch master https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
 RUN chown -R apollo:apollo /jbrowse
 WORKDIR /jbrowse/scripts
 RUN pwd
@@ -102,4 +108,5 @@ RUN ./fetch_vcf.sh apollo
 CMD "/launch.sh"
 
 # wait and add organisms after launch if not already there, or do it in the launch script
-# bumping for rebuilding docker 
+
+
