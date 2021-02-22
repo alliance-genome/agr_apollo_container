@@ -3,7 +3,6 @@ package org.bbop.apollo
 import grails.converters.JSON
 import groovy.json.JsonBuilder
 import org.apache.shiro.SecurityUtils
-import org.bbop.apollo.Feature
 import org.bbop.apollo.event.AnnotationEvent
 import org.bbop.apollo.event.AnnotationListener
 import org.bbop.apollo.gwt.shared.FeatureStringEnum
@@ -108,7 +107,7 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
             render returnObject
         } else {
             def errorMessage = [message: "You must first login before editing"]
-            response.status = 401
+            response.status = HttpStatus.UNAUTHORIZED.value()
             render errorMessage as JSON
         }
     }
