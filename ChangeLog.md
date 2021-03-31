@@ -1,4 +1,22 @@
 
+
+## 2.6.4 
+
+Features
+
+- Added getAttributions method [2591](https://github.com/GMOD/Apollo/pull/2591) via @mbc32.
+- Make getting track features by location optional to pull unique code [2600](https://github.com/GMOD/Apollo/pull/2600).
+
+Bug Fix
+
+- Provide better detection and fallback for detecting proper Grails version [2020](https://github.com/GMOD/Apollo/issues/2020).
+- Bad WithOrFrom functional annotation evidence can hide display [2595](https://github.com/GMOD/Apollo/issues/2595).
+
+Infrastructure Changes
+
+- Upgrade to [JBrowse 1.16.11](https://github.com/GMOD/jbrowse/releases/tag/1.16.11-release)
+
+
 ## 2.6.3
 
 Features
@@ -15,9 +33,10 @@ Bug Fixes:
 - Bad coordinate value in genomic element details screen in annotator panel [2559](https://github.com/GMOD/Apollo/issues/2559).
 - Web services indicated user had no organism permissions when checking the login [2554](https://github.com/GMOD/Apollo/issues/2554).
 - Vcf reads as ISO-8859-1 instead of UTF-8 from reader mangling some symbols. [2498](https://github.com/GMOD/Apollo/issues/2498).
-- Added security fixes for web services. [2564](https://github.com/GMOD/Apollo/pull/2564).
+- Added security fixes for web services. [2564](https://github.com/GMOD/Apollo/pull/2564), [2587](https://github.com/GMOD/Apollo/pull/2587).
 - In some cases web services tries to create a preference which results in incorrect results [2580](https://github.com/GMOD/Apollo/issues/2580).
 - For the track service, the overlap filter is too restrictive when converting NCList to JSON [2586](https://github.com/GMOD/Apollo/issues/2586).
+- History track names for Gene Produce and Provenance were being cast as GO [2590](https://github.com/GMOD/Apollo/issues/2586).
 
 Infrastructure Changes
 

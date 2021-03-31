@@ -137,14 +137,16 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
         if (!inputObject.track && inputObject.sequence) {
             inputObject.track = inputObject.sequence  // support some legacy
         }
-        inputObject.put(FeatureStringEnum.USERNAME.value, SecurityUtils.subject.principal)
         JSONArray featuresArray = inputObject.getJSONArray(FeatureStringEnum.FEATURES.value)
-        permissionService.checkPermissions(inputObject, PermissionEnum.READ)
+        if(permissionService.hasPermissions(inputObject, PermissionEnum.READ)){
+            JSONObject historyContainer = jsonWebUtilityService.createJSONFeatureContainer();
+            historyContainer = featureEventService.generateHistory(historyContainer, featuresArray)
+            render historyContainer as JSON
+        }
+        else{
+            render status: HttpStatus.UNAUTHORIZED
+        }
 
-        JSONObject historyContainer = jsonWebUtilityService.createJSONFeatureContainer();
-        historyContainer = featureEventService.generateHistory(historyContainer, featuresArray)
-
-        render historyContainer as JSON
     }
 
 
@@ -1244,11 +1246,31 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
         }
     }
 
+    @RestApiMethod(description = "Gets edits made by the annotator, Returns JSON hash user:[edit_type]", path = "/annotationEditor/getAttributions", verb = RestApiVerb.POST)
+    @RestApiParams(params = [
+            @RestApiParam(name = "username", type = "email", paramType = RestApiParamType.QUERY)
+            , @RestApiParam(name = "password", type = "password", paramType = RestApiParamType.QUERY)
+            , @RestApiParam(name = "max", type = "integer", paramType = RestApiParamType.QUERY,description ="(optional, default 1000) Max number of change events to return from most recent to oldest.")
+    ])
+    def getAttributions() {
+        JSONObject inputObject = permissionService.handleInput(request, params)
+        if (!permissionService.hasPermissions(inputObject, PermissionEnum.EXPORT)) {
+            render status: HttpStatus.UNAUTHORIZED
+            return
+        }
+        int max = inputObject.max ?: 1000
+        JSONObject attributions =  featureEventService.generateAttributions( max )
+        render attributions
+    }
+
+
+
 
     @MessageMapping("/AnnotationNotification")
     @SendTo("/topic/AnnotationNotification")
     @Timed
     protected String annotationEditor(String inputString, Principal principal) {
+        log.debug("Web socket connected: ${inputString}")
         inputString = annotationEditorService.cleanJSONString(inputString)
         JSONObject rootElement = (JSONObject) JSON.parse(inputString)
         rootElement.put(FeatureStringEnum.USERNAME.value, principal.name)
@@ -1259,6 +1281,13 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
         log.debug "operationName: ${operationName}"
         def p = task {
             switch (operationName) {
+                case "ping":
+                    return "pong"
+                    break
+                // test case
+                case "broadcast":
+                    broadcastMessage("pong",principal?.name)
+                    break
                 case "logout":
                     SecurityUtils.subject.logout()
                     break
@@ -1311,6 +1340,26 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
             return sendError(ae, principal.name)
         }
 
+    }
+
+    /**
+     * Note: this is a test websocket method
+     * @param message
+     * @param username
+     * @return
+     */
+    protected def broadcastMessage(String message,String username){
+        println "bradcasting message: ${message}"
+        brokerMessagingTemplate.convertAndSend("/topic/AnnotationNotification", message)
+        println "broadcast message: ${message}"
+        if(username){
+            println "send error to user"
+            sendError(new RuntimeException("whoops"),username)
+            println "sent error to user"
+        }
+        println "sending annotation vent"
+        sendAnnotationEvent("annotation event of some kind")
+        println "sent annotation event"
     }
 
 // TODO: handle errors without broadcasting
