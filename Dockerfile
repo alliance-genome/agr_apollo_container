@@ -19,10 +19,11 @@ RUN apt-get -qq update --fix-missing && \
 RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main" >> /etc/apt/sources.list.d/pgdg.list' && \
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 
+#removed /tmp from the rm -rf list--it was failing
 RUN apt-get -qq update --fix-missing && \
 	apt-get --no-install-recommends -y install \
 	postgresql-9.6 postgresql-client-9.6  tomcat9 && \
-	apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /apollo/
+	apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /var/tmp/* /apollo/
 
 RUN curl -sL https://deb.nodesource.com/setup_12.x | bash -
 RUN apt-get -qq update --fix-missing && \
@@ -74,8 +75,10 @@ RUN /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && /bin/bash /bin/buil
 
 USER root
 # remove from webapps and copy it into a staging directory
-RUN rm -rf ${CATALINA_BASE}/webapps/* && \
-	cp /apollo/apollo*.war ${CATALINA_BASE}/apollo.war
+#RUN rm -rf ${CATALINA_BASE}/webapps/* && \
+#	cp /apollo/apollo*.war ${CATALINA_BASE}/apollo.war
+# removed the rm because it fails on my machine
+RUN cp /apollo/apollo*.war ${CATALINA_BASE}/apollo.war
 
 ADD docker-files/createenv.sh /createenv.sh
 ADD docker-files/launch.sh /launch.sh
@@ -83,7 +86,7 @@ ADD docker-files/launch.sh /launch.sh
 RUN pwd
 WORKDIR /
 
-RUN git clone --single-branch --branch release-3.2.0 https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
+RUN git clone --single-branch --branch master https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
 RUN chown -R apollo:apollo /jbrowse
 WORKDIR /jbrowse/scripts
 RUN pwd
