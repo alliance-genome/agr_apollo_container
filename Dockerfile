@@ -3,6 +3,7 @@ FROM ubuntu:18.04
 MAINTAINER Nathan Dunn <nathandunn@lbl.gov>
 ENV DEBIAN_FRONTEND noninteractive
 
+
 # where bin directories are
 ENV CATALINA_HOME /usr/share/tomcat9
 # where webapps are deployed
@@ -12,7 +13,7 @@ ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 
 RUN apt-get -qq update --fix-missing && \
 	apt-get --no-install-recommends -y install \
-	git build-essential libpq-dev wget python3-pip \
+	git locales locales-all build-essential libpq-dev wget python3-pip \
 	lsb-release gnupg2 wget xmlstarlet netcat libpng-dev postgresql-common \
 	zlib1g-dev libexpat1-dev curl ssl-cert zip unzip openjdk-8-jdk-headless
 
@@ -54,9 +55,11 @@ COPY apollo /apollo/apollo
 ADD build* /apollo/
 ADD settings.gradle /apollo
 ADD application.properties /apollo
+RUN ls /apollo
 
 COPY docker-files/build.sh /bin/build.sh
 ADD docker-files/docker-apollo-config.groovy /apollo/apollo-config.groovy
+
 ADD docker-files/agr-apollo-load.sql /agr-apollo-load.sql
 RUN chown -R apollo:apollo /apollo
 RUN ls -la /apollo
@@ -64,14 +67,23 @@ RUN ls -la /apollo
 # install grails and python libraries
 USER apollo
 
+# fix for pip install decode error
+# RUN locale-gen en_US.UTF-8
+ENV LC_CTYPE en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
+
 RUN pip3 install setuptools
-RUN pip3 install nose "apollo==4.2"
+RUN pip3 install wheel
+RUN pip3 install nose apollo==4.2.10
 
 RUN curl -s get.sdkman.io | bash && \
      /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && yes | sdk install grails 2.5.5" && \
      /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && yes | sdk install gradle 3.2.1"
 
 RUN /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && /bin/bash /bin/build.sh"
+
 
 USER root
 # remove from webapps and copy it into a staging directory
@@ -85,7 +97,7 @@ ADD docker-files/launch.sh /launch.sh
 
 RUN pwd
 WORKDIR /
-
+RUN pwd
 RUN git clone --single-branch --branch master https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
 RUN chown -R apollo:apollo /jbrowse
 WORKDIR /jbrowse/scripts
@@ -96,4 +108,5 @@ RUN ./fetch_vcf.sh apollo
 CMD "/launch.sh"
 
 # wait and add organisms after launch if not already there, or do it in the launch script
-# bumping for rebuilding docker 
+
+

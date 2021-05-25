@@ -31,6 +31,7 @@ import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.cellview.client.Column;
 import com.google.gwt.user.cellview.client.*;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.*;
 import com.google.gwt.view.client.*;
 import org.bbop.apollo.gwt.client.dto.AnnotationInfo;
@@ -40,6 +41,7 @@ import org.bbop.apollo.gwt.client.dto.UserInfoConverter;
 import org.bbop.apollo.gwt.client.event.*;
 import org.bbop.apollo.gwt.client.oracles.ReferenceSequenceOracle;
 import org.bbop.apollo.gwt.client.resources.TableResources;
+import org.bbop.apollo.gwt.client.rest.AnnotationRestService;
 import org.bbop.apollo.gwt.client.rest.AvailableStatusRestService;
 import org.bbop.apollo.gwt.client.rest.UserRestService;
 import org.bbop.apollo.gwt.shared.FeatureStringEnum;
@@ -75,11 +77,11 @@ public class AnnotatorPanel extends Composite {
     private Column<AnnotationInfo, Number> lengthColumn;
     private Column<AnnotationInfo, String> dateColumn;
     private Column<AnnotationInfo, String> showHideColumn;
-    private long requestIndex = 0;
+    private static long requestIndex = 0;
     String selectedChildUniqueName ;
 
     private static int selectedSubTabIndex = 0;
-    private static int pageSize = 25;
+    private static int pageSize = 50;
 
     private final String COLLAPSE_ICON_UNICODE = "\u25BC";
     private final String EXPAND_ICON_UNICODE = "\u25C0";
@@ -120,7 +122,7 @@ public class AnnotatorPanel extends Composite {
     @UiField
     ListBox userField;
     @UiField
-    DockLayoutPanel splitPanel;
+    static DockLayoutPanel splitPanel;
     @UiField
     Container northPanelContainer;
     @UiField
@@ -132,7 +134,7 @@ public class AnnotatorPanel extends Composite {
     @UiField
     static ProvenancePanel provenancePanel;
     @UiField
-    CheckBox goOnlyCheckBox;
+    Button goOnlyCheckBox;
     @UiField
     static DbXrefPanel dbXrefPanel;
     @UiField
@@ -149,14 +151,20 @@ public class AnnotatorPanel extends Composite {
     ListBox statusField;
     @UiField
     static HTML annotationDescription;
+  @UiField
+  static DockLayoutPanel annotatorDetailPanel;
+  @UiField
+  static Hyperlink closeDetailsButton;
+  @UiField
+  static Hyperlink annotationLinkButton;
+    @UiField
+    Button geneProductOnlyCheckBox;
+    @UiField
+    Button provenanceOnlyCheckBox;
 
 
     // manage UI-state
-    private Boolean showDetails = true;
-
     static AnnotationInfo selectedAnnotationInfo;
-
-
     private SingleSelectionModel<AnnotationInfo> singleSelectionModel = new SingleSelectionModel<>();
     private final Set<String> showingTranscripts = new HashSet<String>();
 
@@ -238,7 +246,6 @@ public class AnnotatorPanel extends Composite {
                 final int length = range.getLength();
                 String sequenceName = sequenceList.getText().trim();
 
-
                 String url = Annotator.getRootUrl() + "annotator/findAnnotationsForSequence/?sequenceName=" + sequenceName;
                 url += "&request=" + requestIndex;
                 url += "&offset=" + start + "&max=" + length;
@@ -247,7 +254,9 @@ public class AnnotatorPanel extends Composite {
                 url += "&user=" + userField.getSelectedValue();
                 url += "&statusString=" + statusField.getSelectedValue();
                 url += "&clientToken=" + Annotator.getClientToken();
-                url += "&showOnlyGoAnnotations=" + goOnlyCheckBox.getValue();
+                url += "&showOnlyGoAnnotations=" + goOnlyCheckBox.isActive();
+                url += "&showOnlyGeneProductAnnotations=" + geneProductOnlyCheckBox.isActive();
+                url += "&showOnlyProvenanceAnnotations=" + provenanceOnlyCheckBox.isActive();
                 url += "&searchUniqueName=" + uniqueNameCheckBox.getValue();
                 if (queryViewInRangeOnly) {
                     url += "&range=" + MainPanel.getRange();
@@ -514,10 +523,29 @@ public class AnnotatorPanel extends Composite {
                 statusField.setVisible(true);
             }
         });
-
-
     }
-    void selectTranscriptPanel() {
+
+    AnnotationInfo getCurrentGene(){
+        return geneDetailPanel.getInternalAnnotationInfo();
+    }
+
+  private static void closeAnnotatorDetailsPanels() {
+    closeDetailsButton.setVisible(false);
+    annotationLinkButton.setVisible(false);
+    annotationDescription.setHTML("Select annotation to show details");
+    splitPanel.setWidgetSize(annotatorDetailPanel,20);
+    splitPanel.animate(200);
+  }
+
+  private static void openAnnotatorDetailsPanel() {
+    closeDetailsButton.setVisible(true);
+    annotationLinkButton.setVisible(true);
+    splitPanel.setWidgetSize(annotatorDetailPanel,460);
+    splitPanel.animate(200);
+  }
+
+
+  void selectTranscriptPanel() {
         AnnotationInfo selectedObject = singleSelectionModel.getSelectedObject();
         updateAnnotationInfo(selectedObject);
         tabPanel.selectTab(0);
@@ -609,6 +637,7 @@ public class AnnotatorPanel extends Composite {
         typeList.addItem("Pseudogene");
         typeList.addItem("Transposable Element", "transposable_element");
         typeList.addItem("Terminator", "terminator");
+        typeList.addItem("Shine Dalgarno sequence", "Shine_Dalgarno_sequence");
         typeList.addItem("Repeat Region", "repeat_region");
         typeList.addItem("Variant", "sequence_alteration");
     }
@@ -630,7 +659,7 @@ public class AnnotatorPanel extends Composite {
         }
 
         if (annotationInfo == null) {
-            annotationDescription.setHTML("nothing selected");
+            annotationDescription.setHTML("Nothing selected");
             return;
         }
         String type = annotationInfo.getType();
@@ -779,12 +808,12 @@ public class AnnotatorPanel extends Composite {
 
     private static void setAnnotationDescription(AnnotationInfo annotationInfo) {
         if(annotationInfo!=null){
-            annotationDescription.setVisible(true);
             annotationDescription.setHTML("&nbsp;&nbsp;&nbsp;&nbsp;<b>"+annotationInfo.getType()  + "</b>:  " + annotationInfo.getName() +"");
+          openAnnotatorDetailsPanel();
         }
         else{
-            annotationDescription.setVisible(false);
-            annotationDescription.setHTML("");
+            annotationDescription.setHTML("&nbsp;&nbsp;&nbsp;&nbsp;Select annotation to show details");
+          closeAnnotatorDetailsPanels();
         }
     }
 
@@ -935,7 +964,7 @@ public class AnnotatorPanel extends Composite {
             @Override
             public void onSelectionChange(SelectionChangeEvent event) {
                 selectedAnnotationInfo = singleSelectionModel.getSelectedObject();
-                tabPanel.setVisible(showDetails && selectedAnnotationInfo != null);
+                tabPanel.setVisible(selectedAnnotationInfo != null);
                 if (selectedAnnotationInfo != null) {
                     exonDetailPanel.updateData(selectedAnnotationInfo);
                     goPanel.updateData(selectedAnnotationInfo);
@@ -993,30 +1022,40 @@ public class AnnotatorPanel extends Composite {
         reload(false);
     }
 
-    private Boolean isSearchDirty() {
-        if (typeList.getSelectedIndex() > 0) return true;
-        if (userField.getSelectedIndex() > 0) return true;
-        if (goOnlyCheckBox.getValue()) return true;
-        if (uniqueNameCheckBox.getValue()) return true;
-        if (nameSearchBox.getText().trim().length() > 0) return true;
-        if (sequenceList.getValue().trim().length() > 0) return true;
-
-        return false;
-    }
-
     @UiHandler(value = {"statusField"})
     public void updateStatus(ChangeEvent changeEvent){
         reload();
     }
 
-    @UiHandler(value = {"pageSizeSelector"})
+  @UiHandler(value = {"annotationLinkButton"})
+  public void showAnnotationLink(ClickEvent clickEvent){
+    String link =MainPanel.getInstance().generateApolloLink(selectedAnnotationInfo.getUniqueName());
+    new LinkDialog("Link to '"+selectedAnnotationInfo.getName()+"'",link,true);
+  }
+
+  @UiHandler(value = {"closeDetailsButton"})
+  public void closeDetails(ClickEvent clickEvent){
+    closeAnnotatorDetailsPanels();
+  }
+
+  @UiHandler(value = {"pageSizeSelector"})
     public void changePageSize(ChangeEvent changeEvent) {
         pageSize = Integer.parseInt(pageSizeSelector.getSelectedValue());
         dataGrid.setPageSize(pageSize);
         reload();
     }
 
-    @UiHandler(value = {"typeList", "userField", "goOnlyCheckBox", "uniqueNameCheckBox"})
+    @UiHandler(value = {"goOnlyCheckBox","geneProductOnlyCheckBox","provenanceOnlyCheckBox"})
+    public void handleToggle(ClickEvent clickEvent){
+        Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
+            @Override
+            public void execute() {
+                reload();
+            }
+        });
+    }
+
+    @UiHandler(value = {"typeList", "userField",  "uniqueNameCheckBox"})
     public void searchType(ChangeEvent changeEvent) {
         reload();
     }
@@ -1034,7 +1073,9 @@ public class AnnotatorPanel extends Composite {
         userField.setSelectedIndex(0);
         typeList.setSelectedIndex(0);
         uniqueNameCheckBox.setValue(false);
-        goOnlyCheckBox.setValue(false);
+        goOnlyCheckBox.setActive(false);
+        geneProductOnlyCheckBox.setActive(false);
+        provenanceOnlyCheckBox.setActive(false);
         queryViewInRangeOnly = true;
         reload();
     }
@@ -1046,13 +1087,15 @@ public class AnnotatorPanel extends Composite {
         userField.setSelectedIndex(0);
         typeList.setSelectedIndex(0);
         uniqueNameCheckBox.setValue(false);
-        goOnlyCheckBox.setValue(false);
+        goOnlyCheckBox.setActive(false);
+        geneProductOnlyCheckBox.setActive(false);
+        provenanceOnlyCheckBox.setActive(false);
         reload();
     }
 
 
     private void handleDetails() {
-        tabPanel.setVisible(showDetails && singleSelectionModel.getSelectedObject() != null);
+        tabPanel.setVisible(singleSelectionModel.getSelectedObject() != null);
     }
 
     private static AnnotationInfo getChildAnnotation(AnnotationInfo annotationInfo, String uniqueName) {
@@ -1096,7 +1139,7 @@ public class AnnotatorPanel extends Composite {
     public void displayFeature(int featureIndex) {
         AnnotationInfo annotationInfo = dataGrid.getVisibleItem(Math.abs(dataGrid.getVisibleRange().getStart() - featureIndex));
         String type = annotationInfo.getType();
-        if (type.equals("transposable_element") || type.equals("repeat_region") || type.equals("terminator")) {
+        if (type.equals("transposable_element") || type.equals("repeat_region") || type.equals("terminator") || type.equals("Shine_Dalgarno_sequence") ) {            // do nothing
             // do nothing
         } else {
             exonDetailPanel.updateData(annotationInfo);
@@ -1237,5 +1280,43 @@ public class AnnotatorPanel extends Composite {
 
     public void setSelectedChildUniqueName(String selectedChildUniqueName) {
         this.selectedChildUniqueName = selectedChildUniqueName;
+    }
+
+    public void setSelectedGene(String parentName) {
+        List<AnnotationInfo> annotationInfoList = dataGrid.getVisibleItems();
+        // 1. let's look locally and see if its already loaded
+        for(AnnotationInfo annotationInfo : annotationInfoList){
+            if(annotationInfo.getUniqueName().equals(parentName)){
+                geneDetailPanel.updateData(annotationInfo);
+                return ;
+            }
+        }
+        // 2. not found within the default page, so we'll check the server
+        RequestCallback requestCallback = new RequestCallback() {
+            @Override
+            public void onResponseReceived(Request request, Response response) {
+                JSONObject returnValue = null;
+                try {
+                    returnValue = JSONParser.parseStrict(response.getText()).isObject();
+                    JSONArray jsonArray = returnValue.get(FeatureStringEnum.FEATURES.getValue()).isArray();
+                    if(jsonArray.size()==1){
+                        AnnotationInfo annotationInfo = AnnotationInfoConverter.convertFromJsonObject(jsonArray.get(0).isObject(),true);
+                        geneDetailPanel.updateData(annotationInfo);
+                    }
+                } catch (Exception e) {
+                    Bootbox.alert(e.getMessage());
+                }
+            }
+
+            @Override
+            public void onError(Request request, Throwable exception) {
+                Bootbox.alert(exception.getMessage());
+            }
+        };
+        AnnotationRestService.findAnnotationByUniqueName(requestCallback,parentName);
+    }
+
+    public static long getNextRequestIndex(){
+        return requestIndex++ ;
     }
 }

@@ -2,10 +2,12 @@ package org.bbop.apollo
 
 import grails.converters.JSON
 import grails.transaction.Transactional
+import org.bbop.apollo.gwt.shared.GlobalPermissionEnum
 import org.bbop.apollo.gwt.shared.PermissionEnum
 import org.bbop.apollo.history.FeatureOperation
 import org.codehaus.groovy.grails.web.json.JSONArray
 import org.codehaus.groovy.grails.web.json.JSONObject
+import org.restapidoc.annotation.RestApi
 import org.restapidoc.annotation.RestApiMethod
 import org.restapidoc.annotation.RestApiParam
 import org.restapidoc.annotation.RestApiParams
@@ -13,7 +15,9 @@ import org.restapidoc.pojo.RestApiParamType
 import org.restapidoc.pojo.RestApiVerb
 
 import static org.springframework.http.HttpStatus.NOT_FOUND
+import static org.springframework.http.HttpStatus.UNAUTHORIZED
 
+@RestApi(name = "Provenance Annotation", description = "Methods for managing provenance annotations")
 @Transactional(readOnly = true)
 class ProvenanceController {
 
@@ -32,7 +36,10 @@ class ProvenanceController {
   )
   def index() {
     JSONObject dataObject = permissionService.handleInput(request, params)
-    permissionService.checkPermissions(dataObject, PermissionEnum.READ)
+    if(!permissionService.checkLoginGlobalAndLocalPermissions(dataObject, GlobalPermissionEnum.USER,PermissionEnum.READ)){
+      render status : UNAUTHORIZED
+      return
+    }
     Feature feature = Feature.findByUniqueName(dataObject.uniqueName as String)
     if (feature) {
       JSONObject annotations = provenanceService.getAnnotations(feature)
@@ -66,7 +73,10 @@ class ProvenanceController {
   @Transactional
   def save() {
     JSONObject dataObject = permissionService.handleInput(request, params)
-    permissionService.checkPermissions(dataObject, PermissionEnum.WRITE)
+    if(!permissionService.checkLoginGlobalAndLocalPermissions(dataObject, GlobalPermissionEnum.USER,PermissionEnum.WRITE)){
+      render status : UNAUTHORIZED
+      return
+    }
     User user = permissionService.getCurrentUser(dataObject)
     Provenance provenance = new Provenance()
     Feature feature = Feature.findByUniqueName(dataObject.feature)
@@ -92,7 +102,7 @@ class ProvenanceController {
     JSONObject currentFeatureJsonObject = featureService.convertFeatureToJSON(feature)
     newFeaturesJsonArray.add(currentFeatureJsonObject)
 
-    featureEventService.addNewFeatureEvent(FeatureOperation.ADD_GO_ANNOTATION,
+    featureEventService.addNewFeatureEvent(FeatureOperation.ADD_PROVENANCE,
       feature.name,
       feature.uniqueName,
       dataObject,
@@ -121,7 +131,10 @@ class ProvenanceController {
   @Transactional
   def update() {
     JSONObject dataObject = permissionService.handleInput(request, params)
-    permissionService.checkPermissions(dataObject, PermissionEnum.WRITE)
+    if(!permissionService.checkLoginGlobalAndLocalPermissions(dataObject, GlobalPermissionEnum.USER,PermissionEnum.WRITE)){
+      render status : UNAUTHORIZED
+      return
+    }
     User user = permissionService.getCurrentUser(dataObject)
     Feature feature = Feature.findByUniqueName(dataObject.feature)
 
@@ -147,7 +160,7 @@ class ProvenanceController {
     JSONObject currentFeatureJsonObject = featureService.convertFeatureToJSON(feature)
     newFeaturesJsonArray.add(currentFeatureJsonObject)
 
-    featureEventService.addNewFeatureEvent(FeatureOperation.UPDATE_GO_ANNOTATION,
+    featureEventService.addNewFeatureEvent(FeatureOperation.UPDATE_PROVENANCE,
       feature.name,
       feature.uniqueName,
       dataObject,
@@ -170,7 +183,10 @@ class ProvenanceController {
   @Transactional
   def delete() {
     JSONObject dataObject = permissionService.handleInput(request, params)
-    permissionService.checkPermissions(dataObject, PermissionEnum.WRITE)
+    if(!permissionService.checkLoginGlobalAndLocalPermissions(dataObject, GlobalPermissionEnum.USER,PermissionEnum.WRITE)){
+      render status : UNAUTHORIZED
+      return
+    }
     User user = permissionService.getCurrentUser(dataObject)
 
     Feature feature = Feature.findByUniqueName(dataObject.feature)
@@ -186,7 +202,7 @@ class ProvenanceController {
     JSONObject currentFeatureJsonObject = featureService.convertFeatureToJSON(feature)
     newFeaturesJsonArray.add(currentFeatureJsonObject)
 
-    featureEventService.addNewFeatureEvent(FeatureOperation.REMOVE_GO_ANNOTATION,
+    featureEventService.addNewFeatureEvent(FeatureOperation.REMOVE_PROVENANCE,
       feature.name,
       feature.uniqueName,
       dataObject,

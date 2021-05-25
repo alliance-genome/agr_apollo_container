@@ -24,6 +24,7 @@ import org.bbop.apollo.gwt.client.event.UserChangeEvent;
 import org.bbop.apollo.gwt.client.rest.*;
 import org.bbop.apollo.gwt.shared.FeatureStringEnum;
 import org.bbop.apollo.gwt.shared.GlobalPermissionEnum;
+import org.bbop.apollo.gwt.client.comparators.OrganismComparator;
 import org.bbop.apollo.gwt.shared.PermissionEnum;
 import org.gwtbootstrap3.client.ui.*;
 import org.gwtbootstrap3.client.ui.Anchor;
@@ -34,9 +35,7 @@ import org.gwtbootstrap3.client.ui.constants.IconType;
 import org.gwtbootstrap3.extras.bootbox.client.Bootbox;
 import org.gwtbootstrap3.extras.bootbox.client.callback.ConfirmCallback;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by ndunn on 12/18/14.
@@ -657,6 +656,16 @@ public class MainPanel extends Composite {
         }
     }
 
+    private String capitalize(String input){
+      return input.substring(0,1).toUpperCase(Locale.ROOT) + input.substring(1).toLowerCase(Locale.ROOT);
+    }
+
+    private String createSpace(int length){
+      StringBuffer buffer = new StringBuffer();
+      for(int i = 0 ; i < length ; i++) { buffer.append("&nbsp;");}
+      return buffer.toString();
+    }
+
     public void setAppState(AppStateInfo appStateInfo) {
         trackPanel.clear();
 
@@ -673,6 +682,8 @@ public class MainPanel extends Composite {
             organismInfoList = appStateInfo.getOrganismList();
         }
 
+        Collections.sort(organismInfoList, new OrganismComparator() );
+
         commonDataDirectory = appStateInfo.getCommonDataDirectory();
         currentSequence = appStateInfo.getCurrentSequence();
         currentOrganism = appStateInfo.getCurrentOrganism();
@@ -681,8 +692,20 @@ public class MainPanel extends Composite {
 
         organismListBox.clear();
         for (OrganismInfo organismInfo : organismInfoList) {
-            organismListBox.addItem(organismInfo.getName(), organismInfo.getId());
-            if (currentOrganism.getId().equals(organismInfo.getId())) {
+//           Element listElement = organismListBox.getElement();
+          String display = organismInfo.getName();
+            if(organismInfo.getGenus()!=null && organismInfo.getSpecies()!=null) {
+//              display = "<i>"+capitalize(organismInfo.getGenus()) + " " + organismInfo.getSpecies()+ "</i> (" + display + ")";
+              display = capitalize(organismInfo.getGenus()) + " " + organismInfo.getSpecies()+ " (" + display + ")";
+            }
+
+            // allows an html option
+//          OptionElement optionElement = Document.get().createOptionElement();
+//          optionElement.setInnerSafeHtml(SafeHtmlUtils.fromTrustedString(display));
+//          optionElement.setValue(organismInfo.getId());
+            organismListBox.addItem(display, organismInfo.getId());
+//          listElement.appendChild(optionElement);
+          if (currentOrganism.getId().equals(organismInfo.getId())) {
                 organismListBox.setSelectedIndex(organismListBox.getItemCount() - 1);
 
                 // fixes #2319
@@ -892,10 +915,12 @@ public class MainPanel extends Composite {
         text += "<div style='margin-left: 10px;'>";
         text += "<ul>";
         text += "<li>";
-        text += "<a href='" + publicUrl + "'>Public URL</a>";
+        text += "<strong>Public URL</strong><br/>";
+        text += "<a href='" + publicUrl + "'>"+publicUrl+"</a>";
         text += "</li>";
         text += "<li>";
-        text += "<a href='" + apolloUrl + "'>Logged in URL</a>";
+        text += "<strong>Logged in URL</strong><br/>";
+        text += "<a href='" + apolloUrl + "'>"+apolloUrl+"</a>";
         text += "</li>";
         text += "</ul>";
         text += "</div>";
@@ -925,12 +950,26 @@ public class MainPanel extends Composite {
     }
 
     public String generateApolloUrl() {
+        return generateApolloUrl(null);
+    }
+
+  public String generateApolloLink(String uuid) {
+    String url = generateApolloUrl(uuid);
+    return "<a href='"+url+"'>"+url+"</a>";
+  }
+
+    public String generateApolloUrl(String uuid) {
         String url = Annotator.getRootUrl();
         url += "annotator/loadLink";
-        if (currentStartBp != null) {
+        if(uuid==null){
+          if (currentStartBp != null) {
             url += "?loc=" + currentSequence.getName() + ":" + currentStartBp + ".." + currentEndBp;
-        } else {
+          } else {
             url += "?loc=" + currentSequence.getName() + ":" + currentSequence.getStart() + ".." + currentSequence.getEnd();
+          }
+        }
+        else{
+          url += "?loc="+uuid;
         }
         url += "&organism=" + currentOrganism.getId();
         url += "&tracks=";
@@ -1098,6 +1137,7 @@ public class MainPanel extends Composite {
             if(parentName.endsWith("-clone")){
                 parentName = parentName.substring(0,parentName.length()-6);
             }
+            annotatorPanel.setSelectedGene(parentName);
             annotatorPanel.sequenceList.setText("");
             annotatorPanel.nameSearchBox.setText(parentName);
             annotatorPanel.uniqueNameCheckBox.setValue(true);

@@ -22,7 +22,6 @@ import org.bbop.apollo.gwt.client.rest.AnnotationRestService;
 import org.bbop.apollo.gwt.client.rest.AvailableStatusRestService;
 import org.bbop.apollo.gwt.client.rest.RestService;
 import org.bbop.apollo.gwt.shared.FeatureStringEnum;
-import org.bbop.apollo.gwt.shared.PermissionEnum;
 import org.gwtbootstrap3.client.ui.*;
 import org.gwtbootstrap3.extras.bootbox.client.Bootbox;
 import org.gwtbootstrap3.extras.bootbox.client.callback.ConfirmCallback;
@@ -41,9 +40,11 @@ public class GeneDetailPanel extends Composite {
     interface AnnotationDetailPanelUiBinder extends UiBinder<Widget, GeneDetailPanel> {
     }
 
-    private static AnnotationDetailPanelUiBinder ourUiBinder = GWT.create(AnnotationDetailPanelUiBinder.class);
+    private static final AnnotationDetailPanelUiBinder ourUiBinder = GWT.create(AnnotationDetailPanelUiBinder.class);
     @UiField(provided = true)
     SuggestBox nameField;
+    @UiField
+    Button syncNameButton;
     @UiField
     TextBox symbolField;
     @UiField
@@ -72,6 +73,12 @@ public class GeneDetailPanel extends Composite {
     Button gotoAnnotation;
     @UiField
     Button annotationIdButton;
+    @UiField
+    InlineCheckBox partialMin;
+    @UiField
+    InlineCheckBox partialMax;
+    @UiField
+    InlineCheckBox obsoleteButton;
 
     private SuggestedNameOracle suggestedNameOracle = new SuggestedNameOracle();
 
@@ -99,6 +106,42 @@ public class GeneDetailPanel extends Composite {
         String updatedName = symbolField.getText();
         internalAnnotationInfo.setSymbol(updatedName);
         updateGene();
+    }
+
+    @UiHandler("obsoleteButton")
+    void handleObsoleteChange(ChangeEvent e) {
+        internalAnnotationInfo.setObsolete(obsoleteButton.getValue());
+        updateGene();
+    }
+
+    @UiHandler("syncNameButton")
+    void handleSyncName(ClickEvent e) {
+        String inputName = internalAnnotationInfo.getName();
+        Set<AnnotationInfo> childAnnotations = internalAnnotationInfo.getChildAnnotations();
+        assert childAnnotations.size()==1 ;
+        AnnotationInfo firstChild = childAnnotations.iterator().next();
+        firstChild.setName(inputName);
+        updateData(internalAnnotationInfo);
+
+        setEditable(false);
+        RequestCallback requestCallback = new RequestCallback() {
+            @Override
+            public void onResponseReceived(Request request, Response response) {
+                JSONValue returnValue = JSONParser.parseStrict(response.getText());
+                setEditable(true);
+            }
+
+            @Override
+            public void onError(Request request, Throwable exception) {
+                Bootbox.alert("Error updating gene: " + exception);
+                setEditable(true);
+            }
+        };
+        JSONObject data = AnnotationRestService.convertAnnotationInfoToJSONObject(firstChild);
+        data.put(FeatureStringEnum.ORGANISM.getValue(),new JSONString(MainPanel.getInstance().getCurrentOrganism().getId()));
+
+        RestService.sendRequest(requestCallback, "annotator/updateFeature/", data);
+
     }
 
     @UiHandler("synonymsField")
@@ -143,32 +186,82 @@ public class GeneDetailPanel extends Composite {
         updateGene();
     }
 
-    private void enableFields(boolean enabled) {
-        nameField.setEnabled(enabled);
-        symbolField.setEnabled(enabled);
-        descriptionField.setEnabled(enabled);
-        synonymsField.setEnabled(enabled);
-        deleteAnnotation.setEnabled(enabled);
+
+    @UiHandler({"partialMin", "partialMax"})
+    void handlePartial(ChangeEvent e){
+        internalAnnotationInfo.setPartialMin(partialMin.getValue());
+        internalAnnotationInfo.setPartialMax(partialMax.getValue());
+        updatePartials();
     }
 
 
-    private void updateGene() {
-        final AnnotationInfo updatedInfo = this.internalAnnotationInfo;
-        enableFields(false);
+    private void checkSyncButton(){
+        Set<AnnotationInfo> childAnnotations = internalAnnotationInfo.getChildAnnotations();
+        if(childAnnotations.size()==1){
+            AnnotationInfo firstChild = childAnnotations.iterator().next();
+            syncNameButton.setEnabled(!this.internalAnnotationInfo.getName().equals(firstChild.getName()));
+        }
+        else{
+            syncNameButton.setEnabled(false);
+        }
 
+    }
+
+    public void setEditable(boolean editable) {
+        nameField.setEnabled(editable);
+        symbolField.setEnabled(editable);
+        descriptionField.setEnabled(editable);
+        synonymsField.setEnabled(editable);
+        deleteAnnotation.setEnabled(editable);
+        partialMin.setEnabled(editable);
+        partialMax.setEnabled(editable);
+
+        if(!editable || this.internalAnnotationInfo==null){
+            syncNameButton.setEnabled(false);
+        }
+        else{
+            checkSyncButton();
+        }
+    }
+
+    private void updatePartials() {
+        setEditable(false);
         RequestCallback requestCallback = new RequestCallback() {
             @Override
             public void onResponseReceived(Request request, Response response) {
                 JSONValue returnValue = JSONParser.parseStrict(response.getText());
-                enableFields(true);
+                setEditable(true);
                 MainPanel.annotatorPanel.setSelectedChildUniqueName(null);
-//                Annotator.eventBus.fireEvent(new AnnotationInfoChangeEvent(updatedInfo, AnnotationInfoChangeEvent.Action.UPDATE));
             }
 
             @Override
             public void onError(Request request, Throwable exception) {
                 Bootbox.alert("Error updating gene: " + exception);
-                enableFields(true);
+                setEditable(true);
+            }
+        };
+//        RestService.sendRequest(requestCallback, "annotator/updateFeature/", AnnotationRestService.convertAnnotationInfoToJSONObject(this.internalAnnotationInfo));
+        JSONObject data = AnnotationRestService.convertAnnotationInfoToJSONObject(this.internalAnnotationInfo);
+        data.put(FeatureStringEnum.ORGANISM.getValue(),new JSONString(MainPanel.getInstance().getCurrentOrganism().getId()));
+
+        RestService.sendRequest(requestCallback, "annotator/updatePartials/", data);
+
+    }
+
+    private void updateGene() {
+        setEditable(false);
+        RequestCallback requestCallback = new RequestCallback() {
+            @Override
+            public void onResponseReceived(Request request, Response response) {
+                JSONValue returnValue = JSONParser.parseStrict(response.getText());
+                setEditable(true);
+                MainPanel.annotatorPanel.setSelectedChildUniqueName(null);
+            }
+
+            @Override
+            public void onError(Request request, Throwable exception) {
+                Bootbox.alert("Error updating gene: " + exception);
+                setEditable(true);
             }
         };
 //        RestService.sendRequest(requestCallback, "annotator/updateFeature/", AnnotationRestService.convertAnnotationInfoToJSONObject(this.internalAnnotationInfo));
@@ -188,6 +281,9 @@ public class GeneDetailPanel extends Composite {
         suggestedNameOracle.setOrganismName(MainPanel.getInstance().getCurrentOrganism().getName());
         suggestedNameOracle.setFeatureType("sequence:" + annotationInfo.getType());
         nameField.setText(internalAnnotationInfo.getName());
+        partialMin.setValue(internalAnnotationInfo.getPartialMin());
+        partialMax.setValue(internalAnnotationInfo.getPartialMax());
+        obsoleteButton.setValue(internalAnnotationInfo.getObsolete());
         symbolField.setText(internalAnnotationInfo.getSymbol());
         typeField.setText(internalAnnotationInfo.getType());
         synonymsField.setText(internalAnnotationInfo.getSynonyms());
@@ -196,9 +292,10 @@ public class GeneDetailPanel extends Composite {
         userField.setText(internalAnnotationInfo.getOwner());
         dateCreatedField.setText(DateFormatService.formatTimeAndDate(internalAnnotationInfo.getDateCreated()));
         lastUpdatedField.setText(DateFormatService.formatTimeAndDate(internalAnnotationInfo.getDateLastModified()));
+        checkSyncButton();
 
         if (internalAnnotationInfo.getMin() != null) {
-            String locationText = internalAnnotationInfo.getMin().toString();
+            String locationText = Integer.toString(internalAnnotationInfo.getMin()+1);
             locationText += " - ";
             locationText += internalAnnotationInfo.getMax().toString();
             locationText += " strand(";
@@ -218,7 +315,7 @@ public class GeneDetailPanel extends Composite {
 
     @UiHandler("annotationIdButton")
     void getAnnotationInfo(ClickEvent clickEvent) {
-        Bootbox.alert(internalAnnotationInfo.getUniqueName());
+        new LinkDialog("UniqueName: "+internalAnnotationInfo.getUniqueName(),"Link to: "+MainPanel.getInstance().generateApolloLink(internalAnnotationInfo.getUniqueName()),true);
     }
 
     @UiHandler("gotoAnnotation")
@@ -310,11 +407,11 @@ public class GeneDetailPanel extends Composite {
                             statusListBox.setSelectedIndex(i + 1);
                         }
                     }
-                    statusLabelField.setVisible(true);
-                    statusListBox.setVisible(true);
+                  statusLabelField.setText("Status");
+                  statusListBox.setEnabled(true);
                 } else {
-                    statusLabelField.setVisible(false);
-                    statusListBox.setVisible(false);
+                  statusLabelField.setText("No status created");
+                  statusListBox.setEnabled(false);
                 }
             }
 
@@ -334,12 +431,4 @@ public class GeneDetailPanel extends Composite {
         return internalAnnotationInfo;
     }
 
-    public void setEditable(boolean editable) {
-        nameField.setEnabled(editable);
-        symbolField.setEnabled(editable);
-        descriptionField.setEnabled(editable);
-        synonymsField.setEnabled(editable);
-        deleteAnnotation.setEnabled(editable);
-
-    }
 }

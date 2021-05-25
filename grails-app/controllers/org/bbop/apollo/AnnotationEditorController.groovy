@@ -3,7 +3,6 @@ package org.bbop.apollo
 import grails.converters.JSON
 import groovy.json.JsonBuilder
 import org.apache.shiro.SecurityUtils
-import org.bbop.apollo.Feature
 import org.bbop.apollo.event.AnnotationEvent
 import org.bbop.apollo.event.AnnotationListener
 import org.bbop.apollo.gwt.shared.FeatureStringEnum
@@ -108,7 +107,7 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
             render returnObject
         } else {
             def errorMessage = [message: "You must first login before editing"]
-            response.status = 401
+            response.status = HttpStatus.UNAUTHORIZED.value()
             render errorMessage as JSON
         }
     }
@@ -138,25 +137,24 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
         if (!inputObject.track && inputObject.sequence) {
             inputObject.track = inputObject.sequence  // support some legacy
         }
-        inputObject.put(FeatureStringEnum.USERNAME.value, SecurityUtils.subject.principal)
         JSONArray featuresArray = inputObject.getJSONArray(FeatureStringEnum.FEATURES.value)
-        permissionService.checkPermissions(inputObject, PermissionEnum.READ)
+        if(permissionService.hasPermissions(inputObject, PermissionEnum.READ)){
+            JSONObject historyContainer = jsonWebUtilityService.createJSONFeatureContainer();
+            historyContainer = featureEventService.generateHistory(historyContainer, featuresArray)
+            render historyContainer as JSON
+        }
+        else{
+            render status: HttpStatus.UNAUTHORIZED
+        }
 
-        JSONObject historyContainer = jsonWebUtilityService.createJSONFeatureContainer();
-        historyContainer = featureEventService.generateHistory(historyContainer, featuresArray)
-
-        render historyContainer as JSON
     }
 
 
     @RestApiMethod(description = "Returns a translation table as JSON", path = "/annotationEditor/getTranslationTable", verb = RestApiVerb.POST)
     @RestApiParams(params = [])
     def getTranslationTable() {
-        log.debug "getTranslationTable"
         JSONObject returnObject = permissionService.handleInput(request, params)
-        log.debug "return object ${returnObject as JSON}"
         Organism organism = preferenceService.getCurrentOrganismForCurrentUser(returnObject.getString(FeatureStringEnum.CLIENT_TOKEN.value))
-        log.debug "has organism ${organism}"
         // use the over-wridden one
         TranslationTable translationTable = organismService.getTranslationTable(organism)
 
@@ -221,6 +219,25 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
         }
     }
 
+    @RestApiMethod(description = "Set Shine_Dalgarno_sequence feature boundaries", path = "/annotationEditor/setShineDalgarnoBoundaries", verb = RestApiVerb.POST)
+    @RestApiParams(params = [
+        @RestApiParam(name = "username", type = "email", paramType = RestApiParamType.QUERY)
+        , @RestApiParam(name = "password", type = "password", paramType = RestApiParamType.QUERY)
+        , @RestApiParam(name = "organism", type = "string", paramType = RestApiParamType.QUERY, description = "(optional) Organism ID or common name")
+        , @RestApiParam(name = "sequence", type = "string", paramType = RestApiParamType.QUERY, description = "(optional) Sequence name")
+        , @RestApiParam(name = "suppressHistory", type = "boolean", paramType = RestApiParamType.QUERY, description = "Suppress the history of this operation")
+        , @RestApiParam(name = "suppressEvents", type = "boolean", paramType = RestApiParamType.QUERY, description = "Suppress instant update of the user interface")
+        , @RestApiParam(name = "features", type = "JSONArray", paramType = RestApiParamType.QUERY, description = "JSONArray of JSON feature objects described by https://github.com/GMOD/Apollo/blob/master/grails-app/domain/org/bbop/apollo/Feature.groovy")
+    ]
+    )
+    def setShineDalgarnoBoundaries() {
+        JSONObject inputObject = permissionService.handleInput(request, params)
+        if (permissionService.hasPermissions(inputObject, PermissionEnum.WRITE)) {
+            render requestHandlingService.setShineDalgarnoBoundaries(inputObject)
+        } else {
+            render status: HttpStatus.UNAUTHORIZED
+        }
+    }
 
     @RestApiMethod(description = "Add an exon", path = "/annotationEditor/addExon", verb = RestApiVerb.POST
     )
@@ -738,7 +755,7 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
             Feature feature = Feature.findByUniqueName(uniqueName)
             JSONArray attributes = new JSONArray()
             feature.featureProperties.each {
-                if (it.ontologyId != Comment.ontologyId) {
+                if (it.ontologyId != Comment.ontologyId && it.tag != null ) {
                     JSONObject attributeObject = new JSONObject()
                     attributeObject.put(FeatureStringEnum.TAG.value, it.tag)
                     attributeObject.put(FeatureStringEnum.VALUE.value, it.value)
@@ -1206,10 +1223,10 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
 
     @RestApiMethod(description = "Get genes created or updated in the past, Returns JSON hash gene_name:organism", path = "/annotationEditor/getRecentAnnotations", verb = RestApiVerb.POST)
     @RestApiParams(params = [
-            @RestApiParam(name = "username", type = "email", paramType = RestApiParamType.QUERY)
-            , @RestApiParam(name = "password", type = "password", paramType = RestApiParamType.QUERY)
-            , @RestApiParam(name = "days", type = "Integer", paramType = RestApiParamType.QUERY, description = "Number of past days to retrieve annotations from.")
-
+        @RestApiParam(name = "username", type = "email", paramType = RestApiParamType.QUERY)
+        , @RestApiParam(name = "password", type = "password", paramType = RestApiParamType.QUERY)
+        , @RestApiParam(name = "days", type = "Integer", paramType = RestApiParamType.QUERY, description = "(Required) Number of past days to retrieve annotations from.")
+        , @RestApiParam(name = "status", type = "String", paramType = RestApiParamType.QUERY, description = "(optional: default allow all) Pipe-separated list of filters (e.g., 'Finished|Published').  Use 'None' if you want annotations without a status. ")
     ])
 
     def getRecentAnnotations() {
@@ -1220,7 +1237,8 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
         }
 
         if (inputObject.get('days') instanceof Integer) {
-            JsonBuilder updatedGenes = annotationEditorService.recentAnnotations(inputObject.get('days'))
+            String filterString = inputObject.containsKey(FeatureStringEnum.STATUS.value) ? inputObject.getString(FeatureStringEnum.STATUS.value) : null
+            JsonBuilder updatedGenes = annotationEditorService.recentAnnotations(inputObject.getInt('days'),filterString)
             render updatedGenes
         } else {
             def error = [error: inputObject.get('days') + ' Param days must be an Integer']
@@ -1228,11 +1246,31 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
         }
     }
 
+    @RestApiMethod(description = "Gets edits made by the annotator, Returns JSON hash user:[edit_type]", path = "/annotationEditor/getAttributions", verb = RestApiVerb.POST)
+    @RestApiParams(params = [
+            @RestApiParam(name = "username", type = "email", paramType = RestApiParamType.QUERY)
+            , @RestApiParam(name = "password", type = "password", paramType = RestApiParamType.QUERY)
+            , @RestApiParam(name = "max", type = "integer", paramType = RestApiParamType.QUERY,description ="(optional, default 1000) Max number of change events to return from most recent to oldest.")
+    ])
+    def getAttributions() {
+        JSONObject inputObject = permissionService.handleInput(request, params)
+        if (!permissionService.hasPermissions(inputObject, PermissionEnum.EXPORT)) {
+            render status: HttpStatus.UNAUTHORIZED
+            return
+        }
+        int max = inputObject.max ?: 1000
+        JSONObject attributions =  featureEventService.generateAttributions( max )
+        render attributions
+    }
+
+
+
 
     @MessageMapping("/AnnotationNotification")
     @SendTo("/topic/AnnotationNotification")
     @Timed
     protected String annotationEditor(String inputString, Principal principal) {
+        log.debug("Web socket connected: ${inputString}")
         inputString = annotationEditorService.cleanJSONString(inputString)
         JSONObject rootElement = (JSONObject) JSON.parse(inputString)
         rootElement.put(FeatureStringEnum.USERNAME.value, principal.name)
@@ -1243,6 +1281,13 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
         log.debug "operationName: ${operationName}"
         def p = task {
             switch (operationName) {
+                case "ping":
+                    return "pong"
+                    break
+                // test case
+                case "broadcast":
+                    broadcastMessage("pong",principal?.name)
+                    break
                 case "logout":
                     SecurityUtils.subject.logout()
                     break
@@ -1295,6 +1340,26 @@ class AnnotationEditorController extends AbstractApolloController implements Ann
             return sendError(ae, principal.name)
         }
 
+    }
+
+    /**
+     * Note: this is a test websocket method
+     * @param message
+     * @param username
+     * @return
+     */
+    protected def broadcastMessage(String message,String username){
+        println "bradcasting message: ${message}"
+        brokerMessagingTemplate.convertAndSend("/topic/AnnotationNotification", message)
+        println "broadcast message: ${message}"
+        if(username){
+            println "send error to user"
+            sendError(new RuntimeException("whoops"),username)
+            println "sent error to user"
+        }
+        println "sending annotation vent"
+        sendAnnotationEvent("annotation event of some kind")
+        println "sent annotation event"
     }
 
 // TODO: handle errors without broadcasting

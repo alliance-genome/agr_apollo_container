@@ -14,6 +14,7 @@ JSONUtils.variantTypes = [ "SNV", "SNP", "MNV", "MNP", "INDEL", "SUBSTITUTION", 
 JSONUtils.regulatorTypes = [ "TERMINATOR" ];
 
 
+
 JSONUtils.MANUALLY_ASSOCIATE_TRANSCRIPT_TO_GENE = "Manually associate transcript to gene";
 JSONUtils.MANUALLY_DISSOCIATE_TRANSCRIPT_FROM_GENE = "Manually dissociate transcript from gene";
 JSONUtils.MANUALLY_ASSOCIATE_FEATURE_TO_GENE = "Manually associate feature to gene";
@@ -375,8 +376,9 @@ function copyOfficialData(fromFeature,toFeature){
 *    currently, for features with lazy-loaded children, ignores children
 */
 JSONUtils.createApolloFeature = function( jfeature, specified_type, useName, specified_subtype ,is_official)   {
-    var official = is_official === undefined ? false : is_official;
-    var diagnose =  (JSONUtils.verbose_conversion && jfeature.children() && jfeature.children().length > 0);
+  /*jshint maxcomplexity:false */
+  var diagnose =  (JSONUtils.verbose_conversion && jfeature.children() && jfeature.children().length > 0);
+
     if (diagnose)  {
         console.log("converting JBrowse feature to Apollo feture, specified type: " + specified_type + " " + specified_subtype);
         console.log(jfeature,JSON.stringify(jfeature));
@@ -408,7 +410,7 @@ JSONUtils.createApolloFeature = function( jfeature, specified_type, useName, spe
         typename = specified_type;
         var preferredSubFeature = this.getPreferredSubFeature(specified_type,jfeature);
         if(preferredSubFeature){
-            return this.createApolloFeature(preferredSubFeature,specified_type,useName,specified_subtype,official)
+            return this.createApolloFeature(preferredSubFeature,specified_type,useName,specified_subtype,is_official)
         }
     }
     else
@@ -439,7 +441,7 @@ JSONUtils.createApolloFeature = function( jfeature, specified_type, useName, spe
     afeature.orig_id = id ;
 
     // add all other properties if there
-  if(official){
+  if(is_official===true){
       copyOfficialData(jfeature,afeature);
   }
 
@@ -541,18 +543,24 @@ JSONUtils.createApolloFeature = function( jfeature, specified_type, useName, spe
                     foundExons = true;
                 }
                 if (converted_subtype)  {
-                afeature.children.push( JSONUtils.createApolloFeature( subfeat, converted_subtype , official) );
                     if (diagnose)  { console.log("    subfeat original type: " + subtype + ", converted type: " + converted_subtype); }
+                    if(afeature.type !== converted_subtype){
+                        afeature.children.push( JSONUtils.createApolloFeature( subfeat, converted_subtype , is_official) );
+                    }
+                    else{
+                        if(diagnose) console.log('ignoring subfeature for exon',subfeat,subtype,converted_subtype)
+                    }
                 }
                 else {
                     if (diagnose)  { console.log("    edited out subfeature, type: " + subtype); }
                 }
         }
         if (cds) {
-            afeature.children.push( JSONUtils.createApolloFeature( cds, "CDS",official));
-            if (!foundExons) {
+            afeature.children.push( JSONUtils.createApolloFeature( cds, "CDS",is_official));
+            if(diagnose) console.log('if a cds and type',afeature.type,' should we should add an exon if not an exon')
+            if (!foundExons && afeature.type.name !== 'exon') {
                 for (var i = 0; i < cdsFeatures.length; ++i) {
-                    afeature.children.push(JSONUtils.createApolloFeature(cdsFeatures[i], "exon",official));
+                    afeature.children.push(JSONUtils.createApolloFeature(cdsFeatures[i], "exon",is_official));
                 }
             }
         }
@@ -566,7 +574,7 @@ JSONUtils.createApolloFeature = function( jfeature, specified_type, useName, spe
         fake_exon.set('end', jfeature.get('end'));
         fake_exon.set('strand', jfeature.get('strand'));
         fake_exon.set('type', 'exon');
-        afeature.children = [ JSONUtils.createApolloFeature( fake_exon , undefined,official) ];
+        afeature.children = [ JSONUtils.createApolloFeature( fake_exon , undefined,is_official) ];
     }
     if (diagnose)  { console.log("result:"); console.log(afeature); }
     return afeature;

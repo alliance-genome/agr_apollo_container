@@ -1,16 +1,18 @@
 package org.bbop.apollo.gwt.client.rest;
 
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestCallback;
-import com.google.gwt.json.client.JSONArray;
-import com.google.gwt.json.client.JSONNumber;
-import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONString;
+import com.google.gwt.http.client.Response;
+import com.google.gwt.json.client.*;
+import org.bbop.apollo.gwt.client.Annotator;
+import org.bbop.apollo.gwt.client.AnnotatorPanel;
 import org.bbop.apollo.gwt.client.VariantDetailPanel;
 import org.bbop.apollo.gwt.client.dto.AnnotationInfo;
 import org.bbop.apollo.gwt.client.dto.AnnotationInfoConverter;
 import org.bbop.apollo.gwt.client.dto.SequenceInfo;
 import org.bbop.apollo.gwt.shared.FeatureStringEnum;
+import org.gwtbootstrap3.extras.bootbox.client.Bootbox;
 
 import java.util.Set;
 
@@ -18,6 +20,7 @@ import java.util.Set;
  * Created by ndunn on 1/28/15.
  */
 public class AnnotationRestService extends RestService {
+
 
     public static JSONObject convertAnnotationInfoToJSONObject(AnnotationInfo annotationInfo) {
         JSONObject jsonObject = new JSONObject();
@@ -40,6 +43,9 @@ public class AnnotationRestService extends RestService {
         }
         jsonObject.put(FeatureStringEnum.FMIN.getValue(), annotationInfo.getMin() != null ? new JSONNumber(annotationInfo.getMin()) : null);
         jsonObject.put(FeatureStringEnum.FMAX.getValue(), annotationInfo.getMax() != null ? new JSONNumber(annotationInfo.getMax()) : null);
+        jsonObject.put(FeatureStringEnum.IS_FMIN_PARTIAL.getValue(),  JSONBoolean.getInstance(annotationInfo.getPartialMin()) );
+        jsonObject.put(FeatureStringEnum.IS_FMAX_PARTIAL.getValue(), JSONBoolean.getInstance(annotationInfo.getPartialMax()) );
+        jsonObject.put(FeatureStringEnum.OBSOLETE.getValue(), JSONBoolean.getInstance(annotationInfo.getObsolete()) );
         jsonObject.put(FeatureStringEnum.STRAND.getValue(), annotationInfo.getStrand() != null ? new JSONNumber(annotationInfo.getStrand()) : null);
 
         return jsonObject;
@@ -59,6 +65,8 @@ public class AnnotationRestService extends RestService {
       JSONObject locationObject = new JSONObject();
       locationObject.put(FeatureStringEnum.FMIN.getValue(), annotationInfo.getMin() != null ? new JSONNumber(annotationInfo.getMin()) : null);
       locationObject.put(FeatureStringEnum.FMAX.getValue(), annotationInfo.getMax() != null ? new JSONNumber(annotationInfo.getMax()) : null);
+      locationObject.put(FeatureStringEnum.IS_FMIN_PARTIAL.getValue(),  JSONBoolean.getInstance(annotationInfo.getPartialMin()) );
+      locationObject.put(FeatureStringEnum.IS_FMAX_PARTIAL.getValue(), JSONBoolean.getInstance(annotationInfo.getPartialMax()) );
       locationObject.put(FeatureStringEnum.STRAND.getValue(), annotationInfo.getStrand() != null ? new JSONNumber(annotationInfo.getStrand()) : null);
       return locationObject;
   }
@@ -72,6 +80,7 @@ public class AnnotationRestService extends RestService {
   public static void createTranscriptWithExon(RequestCallback requestCallback, AnnotationInfo annotationInfo) {
     JSONObject jsonObject = new JSONObject();
     JSONArray featuresArray = new JSONArray();
+    jsonObject.put(FeatureStringEnum.SEQUENCE.getValue(),new JSONString(annotationInfo.getSequence()));
     jsonObject.put(FeatureStringEnum.FEATURES.getValue(), featuresArray);
     JSONObject featureObject = new JSONObject();
     featuresArray.set(featuresArray.size(), featureObject);
@@ -141,4 +150,15 @@ public class AnnotationRestService extends RestService {
         sendRequest(requestCallback, "annotationEditor/deleteVariantEffectsForSequences", "data=" + jsonObject.toString());
         return jsonObject;
     }
+
+
+  public static void findAnnotationByUniqueName(RequestCallback requestCallback,String uniqueName){
+
+    String url = Annotator.getRootUrl() + "annotator/findAnnotationsForSequence/?searchUniqueName=true&annotationName="+uniqueName;
+    long requestIndex = AnnotatorPanel.getNextRequestIndex();
+    url += "&request="+requestIndex;
+    url += "&statusString=" ;
+    sendRequest(requestCallback, url);
+
+  }
 }

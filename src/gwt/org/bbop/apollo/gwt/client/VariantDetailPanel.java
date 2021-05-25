@@ -94,7 +94,7 @@ public class VariantDetailPanel extends Composite {
         lastUpdatedField.setText(DateFormatService.formatTimeAndDate(internalAnnotationInfo.getDateLastModified()));
 
         if (internalAnnotationInfo.getMin() != null) {
-            String locationText = internalAnnotationInfo.getMin().toString();
+            String locationText = Integer.toString(internalAnnotationInfo.getMin()+1);
             locationText += " - ";
             locationText += internalAnnotationInfo.getMax().toString();
             locationText += " strand(";
@@ -155,7 +155,7 @@ public class VariantDetailPanel extends Composite {
 
     @UiHandler("annotationIdButton")
     void getAnnotationInfo(ClickEvent clickEvent) {
-        Bootbox.alert(internalAnnotationInfo.getUniqueName());
+      new LinkDialog("UniqueName: "+internalAnnotationInfo.getUniqueName(),"Link to: "+MainPanel.getInstance().generateApolloLink(internalAnnotationInfo.getUniqueName()),true);
     }
 
     @UiHandler("gotoAnnotation")

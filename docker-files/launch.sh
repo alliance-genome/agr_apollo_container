@@ -86,7 +86,7 @@ else
     echo "Not using chado!"
 fi
 
-export CATALINA_HOME="${CATALINA_HOME}"
+export CATALINA_HOME="${CATALINA_HOME:-/usr/local/tomcat/}"
 export CATALINA_BASE="${CATALINA_BASE}"
 
 echo "CATALINA_HOME '${CATALINA_HOME}'"
