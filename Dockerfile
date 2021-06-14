@@ -39,19 +39,22 @@ RUN curl -s "http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/blat/blat" -o
 		gunzip /chado.sql.gz
 
 #NOTE, we had problems with the build the archive-file coming in from github so using a clone instead
+#RUN npm i -g yarn &&  useradd -ms /bin/bash -d /apollo apollo
 RUN npm i -g yarn &&  useradd -ms /bin/bash -d /apollo apollo
-COPY client /apollo/client
-COPY gradlew /apollo
-COPY grails-app /apollo/grails-app
-COPY gwt-sdk /apollo/gwt-sdk
-COPY lib /apollo/lib
-COPY src /apollo/src
-COPY web-app /apollo/web-app
-COPY wrapper /apollo/wrapper
-COPY test /apollo/test
-COPY scripts /apollo/scripts
+RUN git clone --depth 1 --single-branch --branch develop https://github.com/gmod/apollo /apollo/apollo-clone
+RUN mv /apollo/apollo-clone/* /apollo && rm -rf /apollo/apollo-clone
+#COPY client /apollo/client
+#COPY gradlew /apollo
+#COPY grails-app /apollo/grails-app
+#COPY gwt-sdk /apollo/gwt-sdk
+#COPY lib /apollo/lib
+#COPY src /apollo/src
+#COPY web-app /apollo/web-app
+#COPY wrapper /apollo/wrapper
+#COPY test /apollo/test
+#COPY scripts /apollo/scripts
 ADD gra* /apollo/
-COPY apollo /apollo/apollo
+#COPY apollo /apollo/apollo
 ADD build* /apollo/
 ADD settings.gradle /apollo
 ADD application.properties /apollo
@@ -82,10 +85,23 @@ RUN curl -s get.sdkman.io | bash && \
      /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && yes | sdk install grails 2.5.5" && \
      /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && yes | sdk install gradle 3.2.1"
 
+RUN which grails
+RUN grails --version
+RUN echo "first"
+
 RUN /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && /bin/bash /bin/build.sh"
 
+RUN which grails
+RUN grails --version
+RUN echo "second"
 
 USER root
+
+RUN echo "now I'm root"
+RUN which grails
+RUN grails --version
+RUN echo "third"
+
 # remove from webapps and copy it into a staging directory
 #RUN rm -rf ${CATALINA_BASE}/webapps/* && \
 #	cp /apollo/apollo*.war ${CATALINA_BASE}/apollo.war
