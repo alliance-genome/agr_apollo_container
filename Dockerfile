@@ -85,22 +85,9 @@ RUN curl -s get.sdkman.io | bash && \
      /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && yes | sdk install grails 2.5.5" && \
      /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && yes | sdk install gradle 3.2.1"
 
-RUN which grails
-RUN grails --version
-RUN echo "first"
-
 RUN /bin/bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && /bin/bash /bin/build.sh"
 
-RUN which grails
-RUN grails --version
-RUN echo "second"
-
 USER root
-
-RUN echo "now I'm root"
-RUN which grails
-RUN grails --version
-RUN echo "third"
 
 # remove from webapps and copy it into a staging directory
 #RUN rm -rf ${CATALINA_BASE}/webapps/* && \
