@@ -2016,6 +2016,8 @@ COPY public.organism (id, version, abbreviation, blatdb, comment, common_name, d
 918487	6	\N	\N	\N	zebrafish	\N	/jbrowse/apollo/data/zebrafish	Danio	{"creator":"19"}	\N	t	rerio	t	\N	\N	f
 1095	6	\N	\N	\N	fly	\N	/jbrowse/apollo/data/fly	Drosophila	\N	\N	t	melanogaster	t	\N	\N	f
 920915	2	\N	\N	\N	SARS-CoV-2	\N	/jbrowse/apollo/data/SARS-CoV-2	Coronavirus	{"creator":"920912"}	\N	t	SARS-CoV-2	t	\N	\N	f
+920918	9	\N	\N	\N	x_laevis	\N	/jbrowse/apollo/data/x_laevis	Xenopus	{"creator":"1084"}	\N	t	laevis	t	\N	\N	f
+920919	9	\N	\N	\N	x_tropicalis	\N	/jbrowse/apollo/data/x_tropicalis	Xenopus	{"creator":"1084"}	\N	t	tropicalis	t	\N	\N	f
 \.
 
 
@@ -2088,6 +2090,8 @@ COPY public.permission (id, version, organism_id, class, group_id, track_visibil
 918619	1	918618	org.bbop.apollo.UserOrganismPermission	\N	\N	["ADMINISTRATE"]	19
 918647	1	918646	org.bbop.apollo.UserOrganismPermission	\N	\N	["ADMINISTRATE"]	19
 920916	1	920915	org.bbop.apollo.UserOrganismPermission	\N	\N	["ADMINISTRATE"]	920912
+920920	1	920918	org.bbop.apollo.UserOrganismPermission	\N	\N	["ADMINISTRATE"]	1084
+920921	1	920919	org.bbop.apollo.UserOrganismPermission	\N	\N	["ADMINISTRATE"]	1084
 \.
 
 

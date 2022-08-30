@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV CATALINA_HOME /usr/share/tomcat9
 # where webapps are deployed
 ENV CATALINA_BASE /var/lib/tomcat9
-ENV CONTEXT_PATH ROOT
+ENV CONTEXT_PATH apollo
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 
 RUN apt-get -qq update --fix-missing && \
