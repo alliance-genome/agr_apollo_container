@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV CATALINA_HOME /usr/share/tomcat9
 # where webapps are deployed
 ENV CATALINA_BASE /var/lib/tomcat9
-ENV CONTEXT_PATH ROOT
+ENV CONTEXT_PATH apollo
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 
 RUN apt-get -qq update --fix-missing && \
@@ -101,7 +101,7 @@ ADD docker-files/launch.sh /launch.sh
 RUN pwd
 WORKDIR /
 RUN pwd
-RUN git clone --single-branch --branch release-5.2.2 https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
+RUN git clone --single-branch --branch add-frogs-apollo https://github.com/alliance-genome/agr_jbrowse_config.git jbrowse
 RUN chown -R apollo:apollo /jbrowse
 WORKDIR /jbrowse/scripts
 RUN pwd
