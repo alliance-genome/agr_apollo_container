@@ -1,11 +1,11 @@
 # Apollo2.X
-#ARG DOCKER_PULL_TAG=latest
-#ARG REG=agrdocker
-#FROM ${REG}/agr_apollo_env:${DOCKER_PULL_TAG}
+ARG DOCKER_PULL_TAG=latest
+ARG REG=agrdocker
+FROM ${REG}/agr_apollo_env:${DOCKER_PULL_TAG}
 
 # probably need something like this ^^^
 
-FROM gmod/agr-apollo-base:1.0
+#FROM gmod/agr-apollo-base:1.0
 MAINTAINER Scott Cain <scott@scottcain.net>
 
 RUN pwd
