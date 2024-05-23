@@ -1,5 +1,46 @@
 # Apollo
 
+# Directions for building Apollo for AGR
+
+This repo was cloned from a "standard" repo for building Apollo that was
+modified for AGR's use. The original documentation is at the bottom of this README.
+This instance of Apollo is only used for "JSON translation." That is, Apollo
+is used to read the NCList json that JBrowse uses and then reply with
+specialized json that the Sequence Feature Viewer (the javascript widget on
+gene and variant pages) consumes. It has to be rebuilt for each release.
+
+# Workflow
+
+1. After the `JBrowseProcessGFF` and `JBrowseProcessVCF` pipelines have
+   successfully run in GoCD for a given release, make a release-specific
+   branch of agr_jbrowse_config
+   (https://github.com/alliance-genome/agr_jbrowse_config) and update the
+   release number in `agr_jbrowse_config/scripts/fetch_vcf.sh`
+   to refer to the release being built.
+
+2. Also in agr_jbrowse_config, update all references to the previous release
+   to the release being built in
+   `/agr_jbrowse_config/tree/master/apollo/data/*/trackList.json`
+   (that is, there will be several directories with `trackList.json` files in
+   them and they will need updating).
+
+3. Commit and push the changes made in 1 & 2.
+
+4. Modify the Dockerfile in this repo to refer to the branch specific
+   repo created in step 1. Commit and push that change.
+
+5. In GoCD, unpause the `ApolloSoftwareStage` pipeline to cause the Apollo
+   container to rebuild. It should rebuild very quickly (certainly no more
+   that a few minutes).
+
+# About Dockerfile.env
+
+Dockerfile.env codes for a base image that the above Dockerfile uses. It is
+rebuilt by the `ApolloENVStage` GoCD pipeline and can be very finicky to get
+it to rebuild successfully, and when it is successful, the rebuild takes a long
+time, usually over 30 minutes. Fortunately, it doesn't often need to be rebuilt
+and certainly doesn't need to be rebuilt for each release.
+
 # Documentation that goes with original Apollo container
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3555454.svg)](https://doi.org/10.5281/zenodo.3555454)
