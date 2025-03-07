@@ -4,6 +4,8 @@ import grails.converters.JSON
 import grails.transaction.NotTransactional
 import grails.transaction.Transactional
 import org.bbop.apollo.event.AnnotationEvent
+import org.bbop.apollo.geneProduct.GeneProduct
+import org.bbop.apollo.go.GoAnnotation
 import org.bbop.apollo.gwt.shared.ClientTokenGenerator
 import org.bbop.apollo.gwt.shared.FeatureStringEnum
 import org.bbop.apollo.gwt.shared.GlobalPermissionEnum
@@ -20,6 +22,8 @@ import org.restapidoc.annotation.RestApiParams
 import org.restapidoc.pojo.RestApiParamType
 import org.restapidoc.pojo.RestApiVerb
 import org.springframework.http.HttpStatus
+
+import static org.springframework.http.HttpStatus.UNAUTHORIZED
 
 /**
  * This is server-side code supporting the high-level functionality of the GWT AnnotatorPanel class.
@@ -220,6 +224,12 @@ class AnnotatorController {
     def updateFeature() {
         log.debug "updateFeature ${params.data}"
         JSONObject data = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(data,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
         if (!permissionService.hasPermissions(data, PermissionEnum.WRITE)) {
             render status: HttpStatus.UNAUTHORIZED
             return
@@ -342,6 +352,12 @@ class AnnotatorController {
     def updatePartials() {
         log.debug "update partials  ${params.data}"
         JSONObject data = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(data,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
         if (!permissionService.hasPermissions(data, PermissionEnum.WRITE)) {
             render status: HttpStatus.UNAUTHORIZED
             return
@@ -406,6 +422,12 @@ class AnnotatorController {
     )
     def setExonBoundaries() {
         JSONObject data = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(data,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
         if (!permissionService.hasPermissions(data, PermissionEnum.WRITE)) {
             render status: HttpStatus.UNAUTHORIZED
             return
@@ -429,7 +451,9 @@ class AnnotatorController {
         jsonObject.put("operation", "set_exon_boundaries")
         jsonObject.put(FeatureStringEnum.USERNAME.value, data.username)
 
-        return requestHandlingService.setExonBoundaries(jsonObject)
+        requestHandlingService.setExonBoundaries(jsonObject)
+        JSONObject updateFeatureContainer = jsonWebUtilityService.createJSONFeatureContainer()
+        render updateFeatureContainer
     }
 
 
@@ -820,6 +844,13 @@ class AnnotatorController {
     @RestApiMethod(description = "Get system info", path = "/system", verb = RestApiVerb.GET)
     @RestApiParams(params = [])
     def system() {
+        JSONObject dataObject = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
         def jsonObject = new JSONObject()
         jsonObject.apollo_version = grails.util.Metadata.current['app.version']
         jsonObject.grails_version = GroovySystem.getVersion()
@@ -846,23 +877,79 @@ class AnnotatorController {
         render annotatorService.getAppState(params.get(FeatureStringEnum.CLIENT_TOKEN.value).toString()) as JSON
     }
 
+    @RestApiMethod(description = "Update common path and return system info", path = "/updateCommonPath", verb = RestApiVerb.POST)
+    @RestApiParams(params =[
+            @RestApiParam(name = "username", type = "email", paramType = RestApiParamType.QUERY)
+            , @RestApiParam(name = "password", type = "password", paramType = RestApiParamType.QUERY)
+            , @RestApiParam(name = "directory", type = "string",  paramType = RestApiParamType.QUERY, description = "Relative or absolute common path directory")
+    ])
     @Transactional
-    String updateCommonPath(String directory) {
-        log.debug "Updating the common path for ${directory}"
+    String updateCommonPath() {
+        JSONObject dataObject = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
         JSONObject returnObject = new JSONObject()
+        String directory = dataObject.directory
 
         try {
+            if (!permissionService.hasGlobalPermissions(dataObject, GlobalPermissionEnum.ADMIN)) {
+                render status: HttpStatus.UNAUTHORIZED
+                return
+            }
             String returnString = trackService.updateCommonDataDirectory(directory) as String
-            log.info "Returning common data directory ${returnString}"
             if (returnString) {
                 returnObject.error = returnString
             }
+            render getSystemInfo()
+            return
         } catch (e) {
             returnObject.error = e.getMessage()
         }
         render returnObject as JSON
     }
 
+    @RestApiMethod(description = "Get system info", path = "/getSystemInfo", verb = RestApiVerb.POST)
+    @Transactional(readOnly  = true )
+    String getSystemInfo() {
+        JSONObject dataObject = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
+        log.debug "Getting the common data path"
+        JSONObject returnObject = new JSONObject()
+
+        try {
+            String returnString = trackService.getCommonDataDirectory()
+            log.debug "Returning common data directory ${returnString}"
+            if (returnString) {
+                returnObject.error = returnString
+            }
+            File file = new File(returnString)
+            returnObject.put("relativePath",returnString)
+            returnObject.put("absolutePath",file.absolutePath)
+            returnObject.put("absolute",file.absolute)
+            returnObject.put("exists",file.exists())
+            returnObject.put("writable",file.canWrite())
+            returnObject.put("readable",file.canRead())
+            returnObject.put("directory",file.isDirectory())
+            returnObject.put("executable",file.canExecute())
+            returnObject.put("freeSpace",file.getFreeSpace())
+            returnObject.put("totalSpace",file.getTotalSpace())
+            returnObject.put("usableSpace",file.getUsableSpace())
+            returnObject.put("root",new File("").absolutePath)
+            returnObject.put("realPath",servletContext.getRealPath("/"))
+        } catch (e) {
+            returnObject.error = e.getMessage()
+        }
+        render returnObject as JSON
+    }
 /**
  */
     @Transactional
@@ -1022,6 +1109,133 @@ class AnnotatorController {
         exportService.export(params.format, response.outputStream, annotatorGroupList, fields, labels, formatters, parameters)
     }
 
+
+    @RestApiMethod(description = "Get annotators report for group", path = "/group/getAnnotatorsReportForGroup", verb = RestApiVerb.POST)
+    @RestApiParams(params = [
+            @RestApiParam(name = "username", type = "email", paramType = RestApiParamType.QUERY)
+            , @RestApiParam(name = "password", type = "password", paramType = RestApiParamType.QUERY)
+            , @RestApiParam(name = "data", type = "json strong", paramType = RestApiParamType.QUERY, description = "JSON of go annotations, gene products , and provenance to be added at once (see upload annotations in interface)")
+    ]
+    )
+    def addFunctionalAnnotations(){
+        JSONObject dataObject = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
+        println "input data object ${dataObject as JSON}"
+        if(!permissionService.checkLoginGlobalAndLocalPermissions(dataObject,GlobalPermissionEnum.USER,PermissionEnum.WRITE)){
+            render status : UNAUTHORIZED
+            return
+        }
+        User user = permissionService.getCurrentUser(dataObject)
+        Feature feature = null
+//        JSONObject originalFeatureJsonObject = null
+
+        List<GoAnnotation> goAnnotationList = []
+        List<GeneProduct> geneProductArrayList = []
+        List<Provenance> provenanceArrayList = []
+
+        JSONArray goArray = dataObject.getJSONArray(FeatureStringEnum.GO_ANNOTATIONS.value)
+        for(JSONObject object in goArray){
+            if(feature==null){
+                feature = Feature.findByUniqueName(object.feature)
+//                originalFeatureJsonObject = featureService.convertFeatureToJSON(feature)
+            }
+            GoAnnotation goAnnotation = new GoAnnotation()
+            goAnnotation.feature = feature
+            goAnnotation.aspect = object.aspect
+            goAnnotation.goRef = object.goTerm
+            goAnnotation.geneProductRelationshipRef = object.geneRelationship
+            goAnnotation.evidenceRef = object.evidenceCode
+            goAnnotation.goRefLabel = object.goTermLabel
+            goAnnotation.evidenceRefLabel = object.evidenceCodeLabel
+            goAnnotation.negate = object.negate ?: false
+            goAnnotation.withOrFromArray = object.withOrFrom
+            goAnnotation.notesArray = object.notes
+            goAnnotation.reference = object.reference
+            goAnnotation.lastUpdated = new Date()
+            goAnnotation.dateCreated = new Date()
+            goAnnotation.addToOwners(user)
+            feature.addToGoAnnotations(goAnnotation)
+            goAnnotation.save(failOnError: true)
+            goAnnotationList.add(goAnnotation)
+        }
+
+        JSONArray geneProductArray = dataObject.getJSONArray(FeatureStringEnum.GENE_PRODUCT.value)
+        for(JSONObject object in geneProductArray){
+            if(feature==null){
+                feature = Feature.findByUniqueName(object.feature)
+//                originalFeatureJsonObject = featureService.convertFeatureToJSON(feature)
+            }
+            GeneProduct geneProduct = new GeneProduct()
+            geneProduct.feature = feature
+            geneProduct.productName = object.productName
+            geneProduct.evidenceRef = object.evidenceCode
+            geneProduct.evidenceRefLabel = object.evidenceCodeLabel
+            geneProduct.alternate = object.alternate ?: false
+            geneProduct.withOrFromArray = object.withOrFrom
+            geneProduct.notesArray = object.notes
+            geneProduct.reference = object.reference
+            geneProduct.lastUpdated = new Date()
+            geneProduct.dateCreated = new Date()
+            geneProduct.addToOwners(user)
+            feature.addToGeneProducts(geneProduct)
+            geneProduct.save(failOnError: true)
+            GeneProductName.findOrSaveByName(geneProduct.productName)
+            geneProductArrayList.add(geneProduct)
+        }
+
+        JSONArray provenanceArray = dataObject.getJSONArray(FeatureStringEnum.PROVENANCE.value)
+        for(JSONObject object in provenanceArray){
+            if(feature==null){
+                feature = Feature.findByUniqueName(object.feature)
+//                originalFeatureJsonObject = featureService.convertFeatureToJSON(feature)
+            }
+            Provenance provenance = new Provenance()
+            provenance.feature = feature
+            provenance.field = object.field
+            provenance.evidenceRef = object.evidenceCode
+            provenance.evidenceRefLabel = object.evidenceCodeLabel
+            provenance.withOrFromArray = object.withOrFrom
+            provenance.notesArray = object.notes
+            provenance.reference = object.reference
+            provenance.lastUpdated = new Date()
+            provenance.dateCreated = new Date()
+            provenance.addToOwners(user)
+            feature.addToProvenances(provenance)
+            provenance.save(failOnError: true)
+            provenanceArrayList.add(provenance)
+        }
+
+        /**
+         * Adds history
+         */
+
+//        JSONArray oldFeaturesJsonArray = new JSONArray()
+//        oldFeaturesJsonArray.add(originalFeatureJsonObject)
+//        JSONArray newFeaturesJsonArray = new JSONArray()
+//        JSONObject currentFeatureJsonObject = featureService.convertFeatureToJSON(feature)
+//        newFeaturesJsonArray.add(currentFeatureJsonObject)
+//        featureEventService.addNewFeatureEvent(FeatureOperation.ADD_BULK_FUNCTIONAL_ANNOTATIONS,
+//                feature.name,
+//                feature.uniqueName,
+//                dataObject,
+//                oldFeaturesJsonArray,
+//                newFeaturesJsonArray,
+//                user)
+
+        if(feature==null){
+            render new JSONObject() as JSON
+            return
+        }
+        render feature as JSON
+    }
+
+
+
     @RestApiMethod(description = "Get annotators report for group", path = "/group/getAnnotatorsReportForGroup", verb = RestApiVerb.POST)
     @RestApiParams(params = [
             @RestApiParam(name = "username", type = "email", paramType = RestApiParamType.QUERY)
@@ -1032,6 +1246,12 @@ class AnnotatorController {
     )
     def getAnnotatorsReportForGroup() {
         JSONObject dataObject = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
         if (!permissionService.hasGlobalPermissions(dataObject, GlobalPermissionEnum.ADMIN)) {
             render status: HttpStatus.UNAUTHORIZED.value()
             return

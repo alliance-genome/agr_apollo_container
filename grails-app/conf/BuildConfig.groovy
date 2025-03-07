@@ -41,9 +41,9 @@ grails.project.dependency.resolution = {
     inherits("global") {
         // specify dependency exclusions here; for example, uncomment this to disable ehcache:
         // excludes 'ehcache'
+     excludes "grails-plugin-log4j", "grails-plugin-logging", "log4j"
     }
 
-    log "error" // log level of Ivy resolver, either 'error', 'warn', 'info', 'debug' or 'verbose'
     checksums true // whether to verify checksums on resolve
     legacyResolve false
     // whether to do a secondary resolve on plugin installation, not advised and here for backwards compatibility
@@ -56,7 +56,8 @@ grails.project.dependency.resolution = {
         grailsCentral()
         mavenCentral()
 
-        mavenRepo "http://repo.grails.org/grails/core"
+        mavenRepo "https://repo.grails.org/artifactory/core/"
+        mavenRepo "https://repo.grails.org/artifactory/plugins/"
         // uncomment these (or add new ones) to enable remote dependency resolution from public Maven repositories
         //mavenRepo "http://repository.codehaus.org"
         //mavenRepo "http://download.java.net/maven/2/"
@@ -66,6 +67,11 @@ grails.project.dependency.resolution = {
     }
 
     dependencies {
+
+
+        runtime 'org.apache.logging.log4j:log4j-api:2.19.0'
+        runtime 'org.apache.logging.log4j:log4j-core:2.19.0'
+        runtime 'org.apache.logging.log4j:log4j-1.2-api:2.19.0'
         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes e.g.
         runtime 'mysql:mysql-connector-java:5.1.29'
         runtime 'org.postgresql:postgresql:9.4.1212'
@@ -161,7 +167,6 @@ grails.project.dependency.resolution = {
         //}
         compile ":yammer-metrics:3.0.1-2"
         compile "org.grails.plugins:quartz2:2.1.6.2"
-        compile "org.grails.plugins:export:1.6"
 
         //compile ":joda-time:1.4"
         // TODO: re-add when ready to install functional tests
@@ -198,4 +203,3 @@ grails.project.dependency.resolution = {
 //    version="2.7.0"
 //    gin.version = '2.1.2'
 //}
-

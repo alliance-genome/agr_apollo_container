@@ -2,7 +2,6 @@ package org.bbop.apollo
 
 import grails.converters.JSON
 import grails.transaction.Transactional
-import org.apache.shiro.authc.UsernamePasswordToken
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.bbop.apollo.gwt.shared.FeatureStringEnum
 import org.bbop.apollo.gwt.shared.GlobalPermissionEnum
@@ -43,6 +42,7 @@ class UserController {
     def loadUsers() {
         try {
             JSONObject dataObject = permissionService.handleInput(request, params)
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
             JSONArray returnArray = new JSONArray()
             // allow instructor see all the users
             if (!permissionService.hasGlobalPermissions(dataObject, GlobalPermissionEnum.USER)) {
@@ -318,6 +318,12 @@ class UserController {
     @Transactional
     def addUserToGroup() {
         JSONObject dataObject = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
         UserGroup userGroup = UserGroup.findByName(dataObject.group)
         User user = dataObject.userId ? User.findById(dataObject.userId) : User.findByUsername(dataObject.user)
         if (!permissionService.hasGlobalPermissions(dataObject, GlobalPermissionEnum.ADMIN) && !permissionService.isGroupAdmin(userGroup, user)) {
@@ -343,6 +349,12 @@ class UserController {
     @Transactional
     def removeUserFromGroup() {
         JSONObject dataObject = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
         UserGroup userGroup = UserGroup.findByName(dataObject.group)
         User user = dataObject.userId ? User.findById(dataObject.userId) : User.findByUsername(dataObject.user)
         if (!permissionService.hasGlobalPermissions(dataObject, GlobalPermissionEnum.ADMIN) && !permissionService.isGroupAdmin(userGroup, user)) {
@@ -373,6 +385,7 @@ class UserController {
         try {
             log.info "Creating user"
             JSONObject dataObject = permissionService.handleInput(request, params)
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
             // allow instructor to create user
             if (!permissionService.hasGlobalPermissions(dataObject, GlobalPermissionEnum.INSTRUCTOR)) {
                 render status: HttpStatus.UNAUTHORIZED
@@ -414,7 +427,14 @@ class UserController {
 
             log.info "Added user ${user.username} with role ${role.name}"
 
-            render new JSONObject() as JSON
+            JSONObject jsonObject = user.properties
+            log.debug "json object ${jsonObject as JSON}"
+            jsonObject.email = user.username
+            jsonObject.username = user.username
+            jsonObject.id = user.id
+            jsonObject.userId = user.id
+            log.debug "rendering json object "
+            render jsonObject as JSON
         } catch (e) {
             log.error(e.fillInStackTrace())
             JSONObject jsonObject = new JSONObject()
@@ -436,6 +456,7 @@ class UserController {
         try {
             log.info "Inactivating user"
             JSONObject dataObject = permissionService.handleInput(request, params)
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
             User user = null
             if (dataObject.has('userId')) {
                 user = User.findById(dataObject.userId)
@@ -497,6 +518,7 @@ class UserController {
         try {
             log.info "Removing user"
             JSONObject dataObject = permissionService.handleInput(request, params)
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
             User user = null
             if (dataObject.has('userId')) {
                 user = User.findById(dataObject.userId)
@@ -552,6 +574,7 @@ class UserController {
         try {
             log.info "Removing user"
             JSONObject dataObject = permissionService.handleInput(request, params)
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
             User user = null
             if (dataObject.has('userId')) {
                 user = User.findById(dataObject.userId)
@@ -588,11 +611,18 @@ class UserController {
             UserTrackPermission.deleteAll(UserTrackPermission.findAllByUser(user))
             UserOrganismPermission.deleteAll(UserOrganismPermission.findAllByUser(user))
             UserOrganismPreference.deleteAll(UserOrganismPreference.findAllByUser(user))
-            user.delete(flush: true)
 
             log.info "Removed user ${user.username}"
 
-            render new JSONObject() as JSON
+            JSONObject jsonObject = user.properties
+            log.debug "json object ${jsonObject as JSON}"
+            jsonObject.email = user.username
+            jsonObject.username = user.username
+            jsonObject.id = user.id
+            jsonObject.userId = user.id
+            log.debug "rendering json object "
+            render jsonObject as JSON
+            user.delete(flush: true)
         } catch (e) {
             log.error(e.fillInStackTrace())
             JSONObject jsonObject = new JSONObject()
@@ -618,6 +648,7 @@ class UserController {
         try {
             log.info "Updating user"
             JSONObject dataObject = permissionService.handleInput(request, params)
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
             // to support webservice, which either provides userId or email. Sometimes only email is provided.
             User user = null
             if (dataObject.has('userId')) {
@@ -638,10 +669,13 @@ class UserController {
             String creatorMetaData = user.getMetaData(FeatureStringEnum.CREATOR.value)
             // instead of using !permissionService.isAdmin() because it only works for login user but doesn't work for webservice
             // allow update a user if the current user is global admin or the current user is the creator of the user
-            if (!permissionService.sameUser(dataObject, request) && !permissionService.hasGlobalPermissions(dataObject, GlobalPermissionEnum.ADMIN) && !(creatorMetaData && currentUser.id.toString() == creatorMetaData)) {
+            def isSameUser = permissionService.sameUser(dataObject, request)
+            def isGlobalAdmin = permissionService.hasGlobalPermissions(dataObject, GlobalPermissionEnum.ADMIN)
+            def isUserCreator = creatorMetaData && currentUser.id.toString() == creatorMetaData
+            if (!(isSameUser || isGlobalAdmin || isUserCreator)) {
                 def error = [error: 'not authorized to update the user']
                 log.error(error.error)
-                response.status = HttpStatus.UNAUTHORIZED.value()V
+                response.status = HttpStatus.UNAUTHORIZED.value()
                 render error as JSON
                 return
             }
@@ -662,13 +696,22 @@ class UserController {
                 roleString = dataObject.role
             }
             Role currentRole = userService.getHighestRole(user)
-            // if currentRole doesn't exist and roleString is not null, or currentRole is different than roleString
-            if (!currentRole && roleString || (currentRole && roleString && !roleString.equalsIgnoreCase(currentRole.name))) {
-                if (currentRole) {
-                    user.removeFromRoles(currentRole)
+            if (roleString && !roleString.equalsIgnoreCase(currentRole.name)) {
+                if (isSameUser) {
+                    def error = [error: 'cannot update own role']
+                    log.error(error.error)
+                    response.status = HttpStatus.UNAUTHORIZED.value()
+                    render error as JSON
+                    return
                 }
-                Role role = Role.findByName(roleString.toUpperCase())
-                user.addToRoles(role)
+                // if currentRole doesn't exist and roleString is not null, or currentRole is different than roleString
+                if (!currentRole && roleString || (currentRole && roleString && !roleString.equalsIgnoreCase(currentRole.name))) {
+                    if (currentRole) {
+                        user.removeFromRoles(currentRole)
+                    }
+                    Role role = Role.findByName(roleString.toUpperCase())
+                    user.addToRoles(role)
+                }
             }
 
             log.info "Updated user"
@@ -691,6 +734,12 @@ class UserController {
     ])
     def getOrganismPermissionsForUser() {
         JSONObject dataObject = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
         if (!permissionService.hasPermissions(dataObject, PermissionEnum.USER)) {
           render status: HttpStatus.UNAUTHORIZED
           return
@@ -725,6 +774,12 @@ class UserController {
     def updateOrganismPermission() {
         log.info "Updating organism permissions"
         JSONObject dataObject = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
         if (!permissionService.hasPermissions(dataObject, PermissionEnum.ADMINISTRATE)) {
             render status: HttpStatus.UNAUTHORIZED
             return
@@ -795,6 +850,12 @@ class UserController {
     ])
     def getUserCreator() {
         JSONObject dataObject = permissionService.handleInput(request, params)
+        try {
+            permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+        } catch (e) {
+            def error = [error: e.message]
+            render error as JSON
+        }
         if (!permissionService.hasGlobalPermissions(dataObject, GlobalPermissionEnum.ADMIN)) {
             def error = [error: 'not authorized to view the metadata']
             log.error(error.error)

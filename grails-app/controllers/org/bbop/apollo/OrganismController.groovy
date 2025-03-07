@@ -61,6 +61,7 @@ class OrganismController {
 
     try {
       JSONObject organismJson = permissionService.handleInput(request, params)
+      permissionService.hasPermissions(organismJson,PermissionEnum.READ)
       log.debug "deleteOrganism ${organismJson}"
       log.debug "organism ID: ${organismJson.id}"
       // backporting a bug here:
@@ -132,6 +133,7 @@ class OrganismController {
     log.debug "deleteOrganismWithSequence ${requestObject}"
 
     try {
+      permissionService.hasPermissions(requestObject,PermissionEnum.READ)
       //if (permissionService.isUserGlobalAdmin(permissionService.getCurrentUser(requestObject))) {
       if (permissionService.hasGlobalPermissions(requestObject, GlobalPermissionEnum.ADMIN)) {
         Organism organism = preferenceService.getOrganismForTokenInDB(requestObject.organism as String)
@@ -200,13 +202,8 @@ class OrganismController {
   @NotTransactional
   def deleteOrganismFeatures() {
     JSONObject organismJson = permissionService.handleInput(request, params)
-    if (organismJson.username == "" || organismJson.organism == "" || organismJson.password == "") {
-      def error = ['error': 'Empty fields in request JSON']
-      render error as JSON
-      log.error(error.error)
-      return
-    }
     try {
+      permissionService.hasPermissions(organismJson,PermissionEnum.READ)
       if ( !permissionService.hasGlobalPermissions(organismJson, PermissionEnum.ADMINISTRATE)
         || !permissionService.hasPermissions(organismJson, PermissionEnum.ADMINISTRATE)
       ) {
@@ -268,6 +265,12 @@ class OrganismController {
 
     JSONObject returnObject = new JSONObject()
     JSONObject requestObject = permissionService.handleInput(request, params)
+    try {
+      permissionService.hasPermissions(requestObject,PermissionEnum.READ)
+    } catch (e) {
+      def error = [error: e.message]
+      render error as JSON
+    }
     log.info "Adding organism with SEQUENCE ${requestObject as String}"
     String clientToken = requestObject.getString(FeatureStringEnum.CLIENT_TOKEN.value)
     CommonsMultipartFile organismDataFile = request.getFile(FeatureStringEnum.ORGANISM_DATA.value)
@@ -323,7 +326,10 @@ class OrganismController {
         organism.addMetaData("creator", userId)
         File directory = trackService.getExtendedDataDirectory(organism)
 
-        if (directory.mkdirs() && directory.setWritable(true)) {
+        boolean madeDirectory = directory.mkdirs()
+        boolean writeable = directory.setWritable(true)
+
+        if (madeDirectory && writeable) {
 
           if (organismDataFile) {
             log.debug "Successfully created directory ${directory.absolutePath}"
@@ -365,11 +371,11 @@ class OrganismController {
               File rawDirectory = new File(directory.absolutePath + "/seq")
               assert rawDirectory.mkdir()
               assert rawDirectory.setWritable(true)
-              File archiveFile = new File(rawDirectory.absolutePath + File.separator + organismName + "." + sequenceTypeEnum.suffix)
+              File archiveFile = new File(rawDirectory.absolutePath + File.separator + organismName + "." + sequenceTypeEnum.correctedSuffix)
               sequenceDataFile.transferTo(archiveFile)
               organism.directory = directory.absolutePath
 
-              String fastaPath = rawDirectory.absolutePath + File.separator + organismName + ".fa"
+              String fastaPath = rawDirectory.absolutePath + File.separator + organismName + "." + SequenceTypeEnum.FA.suffix
               // decompress if need be
               if (sequenceTypeEnum.compression != null) {
                 List<String> fileNames = fileService.decompress(archiveFile, rawDirectory.absolutePath)
@@ -380,10 +386,10 @@ class OrganismController {
                 oldFile.renameTo(newFile)
               }
 
-              log.info "search db file : ${searchDatabaseDataFile.name} ${searchDatabaseDataFile.size} ${searchDatabaseDataFile.originalFilename} ${searchDatabaseDataFile.contentType}"
 
 
               if (searchDatabaseDataFile != null && searchDatabaseDataFile.size > 0) {
+                log.info "search db file : ${searchDatabaseDataFile.name} ${searchDatabaseDataFile.size} ${searchDatabaseDataFile.originalFilename} ${searchDatabaseDataFile.contentType}"
                 File searchDirectory = new File(directory.absolutePath + "/search")
                 assert searchDirectory.mkdir()
                 assert searchDirectory.setWritable(true)
@@ -462,6 +468,12 @@ class OrganismController {
   def removeTrackFromOrganism() {
     JSONObject returnObject = new JSONObject()
     JSONObject requestObject = permissionService.handleInput(request, params)
+    try {
+      permissionService.hasPermissions(requestObject,PermissionEnum.READ)
+    } catch (e) {
+      def error = [error: e.message]
+      render error as JSON
+    }
     log.info "removing track from organism with ${requestObject}"
 
     if (!requestObject.containsKey(FeatureStringEnum.ORGANISM.value)) {
@@ -557,6 +569,12 @@ class OrganismController {
 
     JSONObject returnObject = new JSONObject()
     JSONObject requestObject = permissionService.handleInput(request, params)
+    try {
+      permissionService.hasPermissions(requestObject,PermissionEnum.READ)
+    } catch (e) {
+      def error = [error: e.message]
+      render error as JSON
+    }
     String pathToJBrowseBinaries = servletContext.getRealPath("/jbrowse/bin")
     log.debug "path to JBrowse binaries ${pathToJBrowseBinaries}"
     log.debug "request object 2: ${requestObject.toString()}"
@@ -861,6 +879,7 @@ class OrganismController {
 
     try {
       JSONObject requestObject = permissionService.handleInput(request, params)
+      permissionService.hasPermissions(requestObject,PermissionEnum.READ)
       if (!requestObject.containsKey(FeatureStringEnum.ORGANISM.value)) {
         returnObject.put("error", "/deleteTrackFromOrganism requires '${FeatureStringEnum.ORGANISM.value}'.")
         response.setStatus(HttpServletResponse.SC_BAD_REQUEST)
@@ -983,6 +1002,12 @@ class OrganismController {
 
     JSONObject returnObject = new JSONObject()
     JSONObject requestObject = permissionService.handleInput(request, params)
+    try {
+      permissionService.hasPermissions(requestObject,PermissionEnum.READ)
+    } catch (e) {
+      def error = [error: e.message]
+      render error as JSON
+    }
 
 
     if (!requestObject.containsKey(FeatureStringEnum.ORGANISM.value)) {
@@ -1129,6 +1154,7 @@ class OrganismController {
     JSONObject organismJson = permissionService.handleInput(request, params)
     String clientToken = organismJson.getString(FeatureStringEnum.CLIENT_TOKEN.value)
     try {
+      permissionService.hasPermissions(organismJson,PermissionEnum.READ)
       // use permissionService.hasGlobalPermissions to check both authentication and authorization
       if (!permissionService.hasGlobalPermissions(organismJson, GlobalPermissionEnum.INSTRUCTOR)) {
         def error = [error: 'not authorized to add organism']
@@ -1215,6 +1241,12 @@ class OrganismController {
   ])
   def getSequencesForOrganism() {
     JSONObject organismJson = permissionService.handleInput(request, params)
+    try {
+      permissionService.hasPermissions(organismJson,PermissionEnum.READ)
+    } catch (e) {
+      def error = [error: e.message]
+      render error as JSON
+    }
     if (organismJson.username == "" || organismJson.organism == "" || organismJson.password == "") {
       render(['error': 'Empty fields in request JSON'] as JSON)
       return
@@ -1313,6 +1345,7 @@ class OrganismController {
   def updateOrganismInfo() {
     try {
       JSONObject organismJson = permissionService.handleInput(request, params)
+      permissionService.hasPermissions(organismJson,PermissionEnum.READ)
       if (!permissionService.isUserGlobalAdmin(permissionService.getCurrentUser(organismJson))) {
 //        permissionService.checkPermissions(organismJson, PermissionEnum.ADMINISTRATE)
         render status: UNAUTHORIZED
@@ -1461,6 +1494,7 @@ class OrganismController {
     log.debug "updating organism metadata ${params}"
     try {
       JSONObject organismJson = permissionService.handleInput(request, params)
+      permissionService.hasPermissions(organismJson,PermissionEnum.READ)
 //      if (permissionService.isUserGlobalAdmin(permissionService.getCurrentUser(organismJson))) {
         if (!permissionService.hasGlobalPermissions(organismJson, GlobalPermissionEnum.ADMIN)) {
 //        permissionService.checkPermissions(organismJson, PermissionEnum.ADMINISTRATE)
@@ -1492,6 +1526,12 @@ class OrganismController {
   ])
   def getOrganismCreator() {
     JSONObject organismJson = permissionService.handleInput(request, params)
+    try {
+      permissionService.hasPermissions(organismJson,PermissionEnum.READ)
+    } catch (e) {
+      def error = [error: e.message]
+      render error as JSON
+    }
     if (!permissionService.hasGlobalPermissions(organismJson, GlobalPermissionEnum.ADMIN)) {
       def error = [error: 'not authorized to view the metadata']
       log.error(error.error)
@@ -1522,6 +1562,7 @@ class OrganismController {
   def findAllOrganisms() {
     try {
       JSONObject requestObject = permissionService.handleInput(request, params)
+      permissionService.hasPermissions(requestObject,PermissionEnum.READ)
       Boolean showPublicOnly = requestObject.showPublicOnly ? Boolean.valueOf(requestObject.showPublicOnly) : false
       Boolean showObsolete = requestObject.showObsolete ? Boolean.valueOf(requestObject.showObsolete) : false
       List<Organism> organismList = []
@@ -1565,11 +1606,12 @@ class OrganismController {
         organismList = organismList.findAll{ o -> o.publicMode }
       }
 
-      if (!organismList) {
-        def error = [error: 'Not authorized for any organisms']
-        render error as JSON
-        return
-      }
+      // should just return an empty array
+//      if (!organismList) {
+//        def error = [error: 'Not authorized for any organisms']
+//        render error as JSON
+//        return
+//      }
 
       UserOrganismPreference userOrganismPreference = UserOrganismPreference.findByUserAndCurrentOrganism(permissionService.getCurrentUser(requestObject), true, [max: 1, sort: "lastUpdated", order: "desc"])
       Long defaultOrganismId = userOrganismPreference ? userOrganismPreference.organism.id : null
@@ -1598,6 +1640,8 @@ class OrganismController {
           id                        : organism.id,
           commonName                : organism.commonName,
           blatdb                    : organism.blatdb,
+          genomeFasta               : organism.genomeFasta,
+          genomeFastaIndex          : organism.genomeFastaIndex,
           directory                 : organism.directory,
           annotationCount           : annotationCount,
           sequences                 : sequenceCount,

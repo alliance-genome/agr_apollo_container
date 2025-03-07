@@ -36,6 +36,12 @@ class ProvenanceController {
   )
   def index() {
     JSONObject dataObject = permissionService.handleInput(request, params)
+    try {
+      permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+    } catch (e) {
+      def error = [error: e.message]
+      render error as JSON
+    }
     if(!permissionService.checkLoginGlobalAndLocalPermissions(dataObject, GlobalPermissionEnum.USER,PermissionEnum.READ)){
       render status : UNAUTHORIZED
       return
@@ -61,18 +67,24 @@ class ProvenanceController {
   @RestApiParams(params = [
     @RestApiParam(name = "username", type = "email", paramType = RestApiParamType.QUERY)
     , @RestApiParam(name = "password", type = "password", paramType = RestApiParamType.QUERY)
-          , @RestApiParam(name = "feature", type = "string", paramType = RestApiParamType.QUERY, description = "Feature uniqueName to query on")
+    , @RestApiParam(name = "feature", type = "string", paramType = RestApiParamType.QUERY, description = "Feature uniqueName to query on")
     , @RestApiParam(name = "field", type = "string", paramType = RestApiParamType.QUERY, description = "Field type to annotate ")
     , @RestApiParam(name = "evidenceCode", type = "string", paramType = RestApiParamType.QUERY, description = "Evidence (ECO) CURIE")
     , @RestApiParam(name = "evidenceCodeLabel", type = "string", paramType = RestApiParamType.QUERY, description = "Evidence (ECO) Label")
     , @RestApiParam(name = "withOrFrom", type = "string", paramType = RestApiParamType.QUERY, description = "JSON Array of with or from CURIE strings, e.g., {[\"UniProtKB:12312]]\"]}")
-      , @RestApiParam(name = "notes", type = "string", paramType = RestApiParamType.QUERY, description = "JSON Array of notes  {[\"A simple note\"]}")
-          , @RestApiParam(name = "references", type = "string", paramType = RestApiParamType.QUERY, description = "JSON Array of reference CURIE strings, e.g., {[\"PMID:12312\"]}")
+    , @RestApiParam(name = "notes", type = "string", paramType = RestApiParamType.QUERY, description = "JSON Array of notes  {[\"A simple note\"]}")
+    , @RestApiParam(name = "reference", type = "string", paramType = RestApiParamType.QUERY, description = "Reference CURIE string, e.g., \"PMID:12312]]\"")
   ]
   )
   @Transactional
   def save() {
     JSONObject dataObject = permissionService.handleInput(request, params)
+    try {
+      permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+    } catch (e) {
+      def error = [error: e.message]
+      render error as JSON
+    }
     if(!permissionService.checkLoginGlobalAndLocalPermissions(dataObject, GlobalPermissionEnum.USER,PermissionEnum.WRITE)){
       render status : UNAUTHORIZED
       return
@@ -125,12 +137,18 @@ class ProvenanceController {
     , @RestApiParam(name = "evidenceCodeLabel", type = "string", paramType = RestApiParamType.QUERY, description = "Evidence (ECO) Label")
     , @RestApiParam(name = "withOrFrom", type = "string", paramType = RestApiParamType.QUERY, description = "JSON Array of with or from CURIE strings, e.g., {[\"UniProtKB:12312]]\"]}")
     , @RestApiParam(name = "notes", type = "string", paramType = RestApiParamType.QUERY, description = "JSON Array of notes  {[\"A simple note\"]}")
-    , @RestApiParam(name = "references", type = "string", paramType = RestApiParamType.QUERY, description = "JSON Array of reference CURIE strings, e.g., {[\"PMID:12312\"]}")
+    , @RestApiParam(name = "reference", type = "string", paramType = RestApiParamType.QUERY, description = "Reference CURIE string, e.g., \"PMID:12312]]\"")
   ]
   )
   @Transactional
   def update() {
     JSONObject dataObject = permissionService.handleInput(request, params)
+    try {
+      permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+    } catch (e) {
+      def error = [error: e.message]
+      render error as JSON
+    }
     if(!permissionService.checkLoginGlobalAndLocalPermissions(dataObject, GlobalPermissionEnum.USER,PermissionEnum.WRITE)){
       render status : UNAUTHORIZED
       return
@@ -183,6 +201,12 @@ class ProvenanceController {
   @Transactional
   def delete() {
     JSONObject dataObject = permissionService.handleInput(request, params)
+    try {
+      permissionService.hasPermissions(dataObject,PermissionEnum.READ)
+    } catch (e) {
+      def error = [error: e.message]
+      render error as JSON
+    }
     if(!permissionService.checkLoginGlobalAndLocalPermissions(dataObject, GlobalPermissionEnum.USER,PermissionEnum.WRITE)){
       render status : UNAUTHORIZED
       return
